@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}OpenText Metrics Dashboard{% endblock %}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #003C71 0%, #006BA6 50%, #0094D9 100%);
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* OpenText Logo Background */
+        body::before {
+            content: '';
+            position: fixed;
+            width: 150%;
+            height: 150%;
+            top: -25%;
+            left: -25%;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><text x="50%%" y="50%%" font-size="80" fill="%23ffffff" opacity="0.03" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-weight="bold">OpenText</text></svg>') repeat;
+            background-size: 400px 400px;
+            opacity: 0.4;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0px;
+        }
+
+        /* Navigation */
+        nav {
+            background: rgba(0, 60, 113, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 15px 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-brand {
+            font-size: 24px;
+            font-weight: bold;
+            color: #fff;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-brand::before {
+            content: '◆';
+            color: #00D1FF;
+            font-size: 28px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 20px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: #fff;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .nav-links a:hover {
+            background: rgba(0, 209, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .nav-links a.active {
+            background: linear-gradient(135deg, #00D1FF, #0094D9);
+            box-shadow: 0 4px 15px rgba(0, 209, 255, 0.4);
+        }
+
+        .logout-btn {
+            background: linear-gradient(135deg, #FF4757, #FF6B7A);
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .logout-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 71, 87, 0.4);
+        }
+
+        /* Session Timer Display */
+        .session-timer {
+            color: #fff;
+            font-size: 12px;
+            margin-right: 15px;
+            padding: 5px 12px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 5px;
+        }
+
+        .session-timer.warning {
+            background: rgba(255, 165, 0, 0.3);
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        /* Content Card */
+        .content-card {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        h1, h2, h3 {
+            color: #003C71;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 32px;
+            border-bottom: 3px solid #00D1FF;
+            padding-bottom: 10px;
+        }
+
+        /* Flash Messages */
+        .flash-messages {
+            margin-bottom: 20px;
+        }
+
+        .alert {
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(-100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .alert-success {
+            background: linear-gradient(135deg, #90EE90, #66CC66);
+            color: #0d4d0d;
+            border-left: 5px solid #008000;
+        }
+
+        .alert-danger {
+            background: linear-gradient(135deg, #FFB3BA, #FF8A95);
+            color: #8B0000;
+            border-left: 5px solid #DC143C;
+        }
+
+        .alert-warning {
+            background: linear-gradient(135deg, #FFE4B5, #FFD700);
+            color: #8B4513;
+            border-left: 5px solid #FFA500;
+        }
+
+        .alert-info {
+            background: linear-gradient(135deg, #ADD8E6, #87CEEB);
+            color: #00008B;
+            border-left: 5px solid #4682B4;
+        }
+
+        /* Forms */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #003C71;
+            font-weight: 600;
+        }
+
+        input[type="text"],
+        input[type="password"],
+        input[type="number"],
+        input[type="date"],
+        select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #E0E0E0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+            background: white;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: #00D1FF;
+            box-shadow: 0 0 0 3px rgba(0, 209, 255, 0.1);
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #003C71, #0094D9);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 148, 217, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #dc3545, #ff6b7a);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(220, 53, 69, 0.4);
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        th {
+            background: linear-gradient(135deg, #003C71, #0094D9);
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        tr:hover {
+            background: rgba(0, 209, 255, 0.05);
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            border: 4px solid rgba(0, 209, 255, 0.2);
+            border-radius: 50%;
+            border-top: 4px solid #00D1FF;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    {% if session.username %}
+    <div class="container">
+        <nav>
+            <a href="{{ url_for('metrics') }}" class="nav-brand">OpenText Metrics</a>
+            <ul class="nav-links">
+                <li><a href="{{ url_for('metrics') }}" class="{% if request.endpoint == 'metrics' %}active{% endif %}">Metrics</a></li>
+                <li><a href="{{ url_for('reporting') }}" class="{% if request.endpoint == 'reporting' %}active{% endif %}">Reporting</a></li>
+            </ul>
+            <div style="display: flex; align-items: center;">
+                <span id="sessionTimer" class="session-timer"></span>
+                <form action="{{ url_for('logout') }}" method="get" style="margin: 0;">
+                    <button type="submit" class="logout-btn">Logout ({{ session.username }})</button>
+                </form>
+            </div>
+        </nav>
+    </div>
+    {% endif %}
+
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </div>
+
+    {% block extra_js %}{% endblock %}
+
+    {% block modals %}{% endblock %}
+
+    <script>
+// Enhanced Session Management with Visual Timer
+let sessionWarningShown = false;
+let sessionCheckInterval = null;
+let timerElement = document.getElementById('sessionTimer');
+
+function updateSessionTimer(remainingSeconds) {
+    if (!timerElement) return;
+    
+    const minutes = Math.floor(remainingSeconds / 60);
+    const seconds = remainingSeconds % 60;
+    
+    timerElement.textContent = `Session: ${minutes}m ${seconds}s`;
+    
+    // Show warning if less than 5 minutes remaining
+    if (remainingSeconds < 300) {
+        timerElement.classList.add('warning');
+        
+        // Show alert at 2 minutes
+        if (remainingSeconds === 120 && !sessionWarningShown) {
+            sessionWarningShown = true;
+            alert('Your session will expire in 2 minutes due to inactivity. Please interact with the page to extend your session.');
+        }
+    } else {
+        timerElement.classList.remove('warning');
+    }
+}
+
+function checkSessionTimeout() {
+    fetch('/check_session', {
+        method: 'GET',
+        credentials: 'same-origin'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (!data.valid) {
+            clearInterval(sessionCheckInterval);
+            alert('Your session has expired due to inactivity. Please log in again.');
+            window.location.href = '/login';
+        } else if (data.remaining_seconds) {
+            updateSessionTimer(data.remaining_seconds);
+        }
+    })
+    .catch(err => {
+        console.error('Session check failed:', err);
+    });
+}
+
+// Only run session checks if user is logged in
+if (timerElement) {
+    // Check immediately
+    checkSessionTimeout();
+    
+    // Then check every 30 seconds
+    sessionCheckInterval = setInterval(checkSessionTimeout, 30000);
+    
+    // Reset warning flag on user activity
+    ['click', 'keypress', 'scroll', 'mousemove'].forEach(event => {
+        let activityTimeout;
+        document.addEventListener(event, function() {
+            clearTimeout(activityTimeout);
+            activityTimeout = setTimeout(() => {
+                sessionWarningShown = false;
+            }, 1000);
+        }, { passive: true });
+    });
+}
+
+// Handle page refresh
+if (performance.navigation.type === 1) { 
+    try {
+        sessionStorage.removeItem('metrics_state');
+        sessionStorage.removeItem('reporting_state');
+    } catch (e) {
+        console.warn('Could not clear sessionStorage', e);
+    }
+
+    const url = new URL(window.location.href);
+    url.searchParams.set("reload", "1");
+    window.location.replace(url.toString());
+}
+</script>
+</body>
+</html>

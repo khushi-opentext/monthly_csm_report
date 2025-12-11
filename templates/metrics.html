@@ -1,0 +1,2936 @@
+{% extends "base.html" %}
+
+{% block title %}Metrics - OpenText Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* MINUTE FIX: make inline editors the same compact size as view-mode */
+/* MINUTE FIX: prevent inner tables from overflowing their card */
+.metrics-section table {
+  width: 100% !important;         /* force table to fit column */
+  table-layout: fixed !important; /* make columns respect available width */
+  box-sizing: border-box;
+}
+
+.metrics-section table td,
+.metrics-section table th {
+  overflow-wrap: anywhere;        /* wrap long content */
+  white-space: normal !important;
+  box-sizing: border-box;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+/* Keep inputs compact and prevent them forcing table wider */
+.metrics-section input.form-control {
+  width: 100% !important;
+  max-width: 140px !important;    /* prevents very wide inputs */
+  box-sizing: border-box !important;
+  height: 36px !important;
+  padding: 6px 10px !important;
+}
+
+/* Ensure cards don't overflow grid cells */
+.metrics-section {
+  overflow: hidden;               /* clip anything still trying to escape */
+  word-break: break-word;
+}
+
+
+    .actions-bar .edit-comment-container { display: none !important; }
+    .actions-bar { display: none !important; }
+    .global-comment-box-wrapper {
+        background: #ffffff;
+        padding: 16px 20px;
+        border-radius: 8px;
+        border: 1px solid #e0e0e0;
+        border-left: 3px solid #00D1FF;   /* THE BLUE LEFT BORDER */
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        margin-top: 25px;
+    }
+
+    .global-comment-title {
+        font-size: 18px;
+        font-weight: 700;
+        color: #0b2e72;
+        margin-bottom: 10px;
+    }
+
+    /* Inner white box inside comments (just like your sketch) */
+    .global-comment-box-inner {
+        border: 2px solid #dce3e9;
+        border-radius: 8px;
+        padding: 14px;
+        background: #ffffff;
+    }
+
+    /* Full-width textarea */
+    .global-comment-textarea {
+        width: 100%;
+        height: 32px !important;      /* single visible line */
+        min-height: 32px !important;
+        max-height: 32px !important;
+        overflow-y: auto !important;   /* scrolling for more lines */
+        resize: none !important;       /* prevent vertical resize */
+        border: none;
+        outline: none;
+        font-size: 15px;
+        line-height: 32px;             /* vertically center text */
+        font-family: 'Segoe UI', sans-serif;
+        padding: 0 6px;
+    }
+
+    /* Save + Cancel buttons aligned right */
+    .global-comment-buttons {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        margin-top: 10px;
+    }
+    /* Compact spacing throughout */
+    /* responsive grid: cards will wrap to next row when space is low */
+.metrics-four-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+  align-items: start;
+}
+
+/* keep card styling same but prevent overly small collapse */
+.metrics-section {
+  background: #f8f9fa;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  border: 1px solid #e0e0e0;
+  border-left: 3px solid #00D1FF;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  min-width: 260px;
+  box-sizing: border-box;
+}
+
+/* Medium screens → 2 per row */
+@media (max-width: 1200px) {
+    .metrics-four-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Small screens → 1 per row */
+@media (max-width: 650px) {
+    .metrics-four-grid {
+        grid-template-columns: repeat(1, 1fr);
+    }
+}
+    
+    .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 12px;
+        margin-top: 10px;
+        margin-bottom: 0;
+    }
+    
+    .metric-card {
+        background: white;
+        padding: 10px 12px;
+        border-radius: 8px;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+        min-height: auto;
+    }
+
+    /* Two-column layout for paired sections */
+    .section-pair {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+
+    .edit-icon {
+        width: 14px;
+        height: 14px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 3px;
+        cursor: pointer;
+        color: #6b7280;
+        transition: color 0.2s ease, background-color 0.2s ease;
+    }
+    .edit-icon:hover {
+        color: #374151;
+        background: rgba(0,0,0,0.06);
+    }
+
+    .inline-editor {
+        display: none;
+        margin-top: 6px;
+    }
+    
+    .metric-actions {
+        display: inline-flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 4px;
+        margin-top: 4px;
+    }
+    .inline-editor.visible {
+        display: block;
+    }
+
+    .inline-actions {
+        display: flex;
+        gap: 6px;
+        margin-top: 4px;
+    }
+
+    .actions-bar {
+        display: flex;
+        gap: 8px;
+        margin-top: 10px;
+        flex-wrap: wrap;
+    }
+    
+    .load-btn { 
+        margin-top: 0;
+        align-self: end; 
+    }
+    
+    tr.dev-row {
+        display: table-row;
+    }
+    
+    body.hide-dev-rows tr.dev-row {
+        display: none !important;
+    }
+
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin: 0 0 10px;
+    }
+    .section-header h2 { 
+        margin: 0;
+        font-size: 19px;
+        font-weight: 700;
+        color: #0b2e72;
+    }
+
+    /* Modal Styles */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1050;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.2s ease, visibility 0.2s;
+    }
+    .modal-overlay.visible {
+        opacity: 1;
+        visibility: visible;
+    }
+    .modal-content {
+        background: white;
+        padding: 16px;
+        border-radius: 10px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        width: 90%;
+        max-width: 420px;
+        transform: translateY(-20px);
+        transition: transform 0.2s ease;
+    }
+    .modal-overlay.visible .modal-content {
+        transform: translateY(0);
+    }
+    .modal-header { 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+        border-bottom: 1px solid #eee; 
+        padding-bottom: 8px; 
+        margin-bottom: 12px; 
+    }
+    .modal-title { 
+        margin: 0; 
+        font-size: 18px; 
+        color: #003C71; 
+    }
+    .modal-close { 
+        background: none; 
+        border: none; 
+        font-size: 22px; 
+        cursor: pointer; 
+        color: #888; 
+    }
+    .modal-body { 
+        margin-bottom: 16px; 
+        line-height: 1.5; 
+    }
+    .modal-footer { 
+        display: flex; 
+        justify-content: flex-end; 
+        gap: 8px; 
+    }
+    #customAlertMessage, #customConfirmMessage { 
+        white-space: pre-wrap; 
+    }
+
+    .section-title {
+        font-family: 'Segoe UI', sans-serif;
+        font-size: 20px !important;
+        font-weight: 700 !important;
+        color: #0b2e72 !important;
+        margin-bottom: 10px !important;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+.section-subtitle {
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 16px !important;
+    font-weight: 700 !important;
+    color: #0b2e72 !important;
+    margin-top: 18px !important;     /* 🔹 space ABOVE heading */
+    margin-bottom: 14px !important;  /* 🔹 space BELOW heading */
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+
+    .info-icon {
+        font-size: 16px; 
+        color: #0b2e72; 
+        cursor: pointer;
+        margin-left: 4px;
+        position: relative;
+        display: inline-block;
+    }
+
+    .tooltip-box {
+        position: absolute;
+        top: 20px;
+        left: 0;
+        background: white;
+        border: 1px solid #d8d8d8;
+        padding: 10px;
+        border-radius: 6px;
+        font-family: Consolas, monospace;
+        font-size: 12px;
+        color: #222;
+        min-width: 240px;
+        max-width: 320px;
+        white-space: pre-wrap;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+        z-index: 20;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.15s ease-in-out;
+    }
+
+    .info-icon:hover .tooltip-box {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .tooltip-key {
+        color: #0d6efd;
+        font-weight: 700;
+    }
+
+    .tooltip-value {
+        color: #d63384;
+        font-weight: 600;
+    }
+
+    .json-key {
+        color: #0d6efd;
+        font-weight: 600;
+    }
+
+    .json-editable {
+        color: #d63384;
+        font-weight: 600;
+    }
+
+    .json-brace {
+        color: #555;
+        font-family: Consolas, monospace;
+        font-size: 12px;
+    }
+
+    .json-editor {
+        font-family: 'Segoe UI', sans-serif !important;
+        font-size: 13px !important;
+        border-radius: 8px !important;
+        padding: 8px !important;
+        border: 1px solid #d0d0d0 !important;
+        height: 90px !important;
+        resize: vertical;
+        background: #fafafa !important;
+    }
+
+    .metric-label {
+        font-size: 15px !important;
+        font-weight: 600 !important;
+        color: #0b2e72 !important;
+        margin-bottom: 6px !important;
+    }
+
+    .metric-card input.form-control,
+    .metric-card select.form-control {
+        width: 100% !important;
+        height: 36px !important;
+        border-radius: 8px !important;
+        border: 1px solid #c9c9c9 !important;
+        padding: 6px 10px !important;
+        font-size: 14px !important;
+        font-family: 'Segoe UI', sans-serif !important;
+        background-color: #ffffff !important;
+    }
+
+    .metric-card textarea.json-editor {
+        width: 100% !important;
+        border-radius: 8px !important;
+        border: 1px solid #d0d0d0 !important;
+        padding: 10px !important;
+        font-size: 13px !important;
+        font-family: 'Segoe UI', sans-serif !important;
+        height: 120px !important;
+        resize: vertical;
+        background: #fcfcfc !important;
+    }
+
+    .inline-editor {
+        width: 100% !important;
+    }
+
+    .metric-row span {
+        font-size: 15px !important;
+        color: #333 !important;
+    }
+
+    .edit-btn {
+        background: linear-gradient(90deg, #004e92, #00B3FF) !important;
+        border: none !important;
+        color: white !important;
+        font-weight: 600 !important;
+        padding: 10px 25px !important;
+        border-radius: 8px !important;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        font-size: 16px !important;
+    }
+
+    .edit-btn:hover {
+        background: linear-gradient(90deg, #003d75, #0097df) !important;
+    }
+
+    .btn-danger {
+        background: #dc3545 !important;
+        border-color: #dc3545 !important;
+        color: white !important;
+    }
+
+    button.btn-danger:hover,
+    .btn.btn-danger:hover {
+        background: #bb2d3b !important;
+        border-color: #b02a37 !important;
+        color: #fff !important;
+    }
+
+    .section-subtitle-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 8px;
+        margin-bottom: 10px;
+    }
+
+    .config-section-edit-btn {
+        padding: 5px 14px !important;
+        border-radius: 6px !important;
+    }
+
+    .config-title-button {
+        background: linear-gradient(90deg, #004e92, #00B3FF);
+        color: white;
+        padding: 8px 24px;
+        font-size: 16px;
+        font-weight: 700;
+        border-radius: 10px;
+        text-align: center;
+        cursor: pointer;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+        width: fit-content;
+        margin: 0 auto 16px auto; 
+        box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        user-select: none;
+    }
+
+    .config-title-button:hover {
+        background: linear-gradient(90deg, #003d75, #0097df);
+    }
+
+    .config-hidden {
+        display: none !important;
+    }
+
+    #config-content.hidden {
+        display: none !important;
+    }
+
+    .hidden {
+        display: none !important;
+    }
+
+    .dual-buttons {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+        margin-bottom: 16px;
+    }
+
+    .ppt-btn {
+        font-size: 14px;
+        padding: 10px 28px;
+        background: linear-gradient(90deg, #004e92, #00B3FF);
+        border: none;
+        border-radius: 8px;
+        color: white;
+    }
+
+    .config-topbar {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+        margin-top: 4px;
+    }
+
+    .gradient-btn {
+        font-size: 14px;
+        padding: 10px 24px;
+        background: linear-gradient(90deg, #003C71, #00C6FF) !important;
+        border: none !important;
+        border-radius: 10px;
+        color: white !important;
+        font-weight: 600 !important;
+        cursor: pointer;
+        box-shadow: 0px 3px 8px rgba(0,0,0,0.15);
+        transition: 0.2s ease-in-out;
+    }
+
+    .gradient-btn:hover {
+        background: linear-gradient(90deg, #002D57, #00A9DB) !important;
+    }
+
+    .error-field {
+        border: 2px solid #ff0800 !important;
+        background-color: #ffe8e8 !important;
+        box-shadow: 0 0 4px rgba(255, 8, 0, 0.6) !important;
+    }
+
+
+    .metric-row {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 6px;
+        width: 100%;
+        min-width: 0;
+    }
+
+    .metric-value {
+        font-size: 15px;
+        font-weight: 600;
+        color: #0f172a;
+        margin-top: 4px;
+        display: block;
+        flex: 1 1 auto;
+        min-width: 0;
+        line-height: 1.3;
+        overflow: hidden;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+
+    .note-display {
+        white-space: pre-wrap;
+        word-break: break-word;
+        overflow: auto;
+        -webkit-overflow-scrolling: touch;
+        line-height: 1.3em;
+        max-height: calc(1.3em * 4);
+        display: block;
+        padding: 4px 2px;
+        margin: 0;
+        box-sizing: border-box;
+        background: transparent;
+    }
+
+    .tooltip-box .json-preview {
+        word-break: break-word;
+        white-space: pre-wrap;
+        max-width: 320px;
+        overflow: auto;
+    }
+
+    .metric-card textarea.json-editor {
+        max-height: 180px;
+        box-sizing: border-box;
+    }
+
+    .note-warning {
+        display: block;
+        margin-top: 4px;
+        font-size: 11px;
+        color: #b71c1c;
+    }
+
+    /* Compact table styles */
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+    }
+
+    table th,
+    table td {
+        padding: 8px 10px;
+        text-align: left;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    table th {
+        background: #f5f5f5;
+        font-weight: 600;
+        color: #0b2e72;
+        font-size: 15px;
+    }
+
+    table td {
+        font-size: 15px;
+    }
+
+    table td strong {
+        font-size: 15px;
+    }
+
+    /* Compact content card */
+    .content-card {
+        padding: 16px 20px;
+    }
+
+    .content-card h1 {
+        font-size: 24px;
+        margin-bottom: 16px;
+        color: #0b2e72;
+    }
+
+    /* Compact form elements */
+    .form-group {
+        margin-bottom: 0;
+    }
+
+    .form-group label {
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 4px;
+        display: block;
+        color: #0b2e72;
+    }
+
+    /* Button sizing */
+    .btn {
+        font-size: 16px;
+        padding: 10px 25px;
+        border-radius: 6px;
+    }
+
+    .btn-primary {
+        background: linear-gradient(90deg, #004e92, #00B3FF);
+        border: none;
+        color: white;
+    }
+
+    .btn-success {
+        padding: 8px 20px;
+        font-size: 14px;
+    }
+
+#customer-config-section {
+    grid-column: 1 / -1 !important;
+    width: 100% !important;
+}
+
+/* keep top bar layout, but align to right and tighten up */
+.config-topbar {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;    /* PPT + Config to the right */
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 8px;
+    margin-top: 0;
+}
+
+
+    /* Month select fix */
+    #month {
+        width: 100%;
+        height: 38px;
+        padding: 8px 12px;
+        font-size: 13px;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        box-sizing: border-box;
+        background: #fff;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    }
+
+    .edit-comment-input,
+    #config_edit_comment {
+        width: 100% !important;
+        height: 80px !important;
+        font-family: 'Segoe UI', sans-serif !important;
+        font-size: 15px !important;
+
+        border-radius: 10px !important;
+        border: 1px solid #c9c9c9 !important;
+
+        padding: 10px 12px !important;
+        background-color: #ffffff !important;
+
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05) !important;
+        resize: vertical;
+    }
+    
+        .custom-select-wrapper {
+        position: relative;
+        width: 100%;
+        overflow: visible !important;
+    }
+
+    .custom-select-input {
+        width: 100%;
+        height: 38px;
+        padding: 8px 35px 8px 12px;
+        font-size: 13px;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        box-sizing: border-box;
+        background: #fff;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+        font-family: 'Segoe UI', sans-serif;
+        cursor: pointer;
+    }
+
+    .custom-select-input:focus {
+        outline: none;
+        border-color: #0066cc;
+        box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+    }
+
+    .custom-select-arrow {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translate(60%,-30%);
+        pointer-events: none;
+        color: #000000;
+        font-size: 15px;
+        font-family: consolas, monospace;
+        font-weight: 1000;
+    }
+
+    .custom-select-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        max-height: 250px;
+        overflow-y: auto;
+        background: white;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        margin-top: 4px;
+        z-index: 1000;
+        display: none;
+    }
+
+    .custom-select-dropdown.show {
+        display: block;
+    }
+
+    .custom-select-option {
+        padding: 10px 12px;
+        cursor: pointer;
+        font-size: 13px;
+        color: #333;
+        transition: background-color 0.15s;
+    }
+
+    .custom-select-option:hover,
+    .custom-select-option.highlighted {
+        background-color: #0066cc;
+        color: white;
+    }
+
+    .custom-select-option.no-results {
+        color: #999;
+        cursor: default;
+        text-align: center;
+    }
+
+    .custom-select-option.no-results:hover {
+        background-color: transparent;
+        color: #999;
+    }
+
+    .metric-card.note-wide {
+        grid-column: span 6;
+    }
+    .metric-card textarea#config_customer_note {
+    width: 100% !important;
+    height: 70px !important;
+    border-radius: 8px !important;
+    border: 1px solid #c9c9c9 !important;
+    padding: 8px 10px !important;
+    font-size: 14px !important;
+    font-family: 'Segoe UI', sans-serif !important;
+    background-color: #ffffff !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important;
+    resize: vertical !important;
+}
+
+</style>
+{% endblock %}
+{% block content %}
+<div class="content-card"
+     id="metrics-container"
+     data-loaded-customer="{{ selected_customer|default('', true)|e }}"
+     data-loaded-month="{{ selected_month|default('', true)|e }}"
+     data-no-of-envs="{{ no_of_envs|default(2, true) }}">
+    <h1>Metrics Dashboard</h1>
+    
+    <!-- Selection Form -->
+    <form method="POST" id="loadForm">
+        <div style="display: grid; grid-template-columns: 1fr 1fr 130px; gap: 16px; align-items: end; margin-bottom: 16px;">
+        <div class="form-group">
+            <label for="customer">Customer</label>
+            <div class="custom-select-wrapper">
+                <input type="text" 
+                    id="customer-search" 
+                    class="custom-select-input"
+                    placeholder="-- Select Customer --"
+                    autocomplete="off"
+                    value="{{ selected_customer|default('', true) }}">
+                <span class="custom-select-arrow">˅</span>
+                <div id="customer-dropdown" class="custom-select-dropdown"></div>
+                
+                <!-- Hidden input to store actual value for form submission -->
+                <input type="hidden" 
+                    name="customer" 
+                    id="customer" 
+                    value="{{ selected_customer|default('', true) }}" 
+                    required>
+            </div>
+        </div>
+            
+            <div class="form-group">
+                <label for="month">Month</label>
+                <select name="month" id="month" required>
+                    <option value="">-- Select Month --</option>
+                </select>
+            </div>
+            
+            <button type="submit" class="btn btn-primary load-btn">Load</button>
+        </div>
+    </form>
+    <div>
+    <h2>
+        <div>
+        {% if selected_customer %}
+        <span id="selectedCustomer">{{ selected_customer }}</span>
+        {% endif %}
+
+        {% set sm = selected_month | default('') | trim %}
+
+        {# Only process month if it exists and is not None #}
+        {% if sm and sm|lower not in ['none', 'null', ''] %}
+
+        {# Normalize separators #}
+        {% if ' ' in sm and '-' not in sm %}
+            {% set parts = sm.split(' ') %}
+        {% else %}
+            {% set parts = sm.replace('/', '-').split('-') %}
+        {% endif %}
+
+        {# Convert month number to Month Name #}
+        {% macro month_name(mm) %}
+            {% if mm == '01' %}January
+            {% elif mm == '02' %}February
+            {% elif mm == '03' %}March
+            {% elif mm == '04' %}April
+            {% elif mm == '05' %}May
+            {% elif mm == '06' %}June
+            {% elif mm == '07' %}July
+            {% elif mm == '08' %}August
+            {% elif mm == '09' %}September
+            {% elif mm == '10' %}October
+            {% elif mm == '11' %}November
+            {% elif mm == '12' %}December
+            {% endif %}
+        {% endmacro %}
+
+        {% if parts|length == 2 and parts[1]|length == 4 %}
+            : {{ parts[0]|capitalize }} {{ parts[1] }}
+
+        {% elif parts|length == 3 and parts[2]|length == 4 %}
+            {% set mm = parts[1].zfill(2) %}
+            {% set yy = parts[2] %}
+            : {{ month_name(mm) }} {{ yy }}
+
+        {% elif parts|length == 3 and parts[0]|length == 4 %}
+            {% set mm = parts[1].zfill(2) %}
+            {% set yy = parts[0] %}
+            : {{ month_name(mm) }} {{ yy }}
+        {% endif %}
+        {% endif %}
+        {% if customer_note %}
+            <span style="color:#c60000; font-size:20px; font-weight:600; margin-left:12px; font-style:italic;">
+                {{ customer_note }}
+            </span>
+        {% endif %}
+    </div>
+    </h2>
+    </div>
+    {% if data %}
+    <div class="metrics-four-grid">
+            <!-- Availability Section -->
+            <div class="metrics-section">
+                <div class="section-header">
+                    <h2>Availability</h2>
+                    <button class="btn edit-btn btn-sm" onclick="toggleSectionEdit(this, 'availability')">Edit</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th><h5>Metric</h5></th>
+                            <th><h5>Value</h5></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Availability</strong></td>
+                            <td>
+                                <div class="metric-row" data-view-mode>
+                                    <div class="metric-value"><span id="availability_display">{{ "%.2f"|format(data.updated_availability * 100) }}%</span></div>
+                                </div>
+                                <div id="availability_editor" class="inline-editor">
+                                    <input type="number" id="availability" step="0.01" max="100" min="0"
+                                        value="{{ "%.2f"|format(data.updated_availability * 100) }}" class="form-control track-original"
+                                        data-display-target="availability_display" data-display-type="percent">
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Target</strong></td>
+                            <td>
+                                <div class="metric-row" data-view-mode>
+                                    <div class="metric-value"><span id="target_display">{{ "%.2f"|format(data.updated_target * 100) }}%</span></div>
+                                </div>
+                                <div id="target_editor" class="inline-editor">
+                                    <input type="number" id="target" step="0.01" max="100" min="0"
+                                        value="{{ "%.2f"|format(data.updated_target * 100) }}" class="form-control track-original"
+                                        data-display-target="target_display" data-display-type="percent">
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="actions-bar" style="display:none;">
+        <div class="edit-comment-container" style="width:100%; margin-bottom:10px; display:none;">
+            <label class="metric-label">Comment</label>
+            <textarea class="form-control edit-comment-input"
+                placeholder="Enter the reason for editing this section..."
+                rows="2" style="border-radius:10px;"></textarea>
+        </div>
+    </div>
+
+            </div>
+            <!-- Users Section -->
+            <div class="metrics-section">
+                <div class="section-header">
+                    <h2>Users</h2>
+                    <button class="btn edit-btn btn-sm" onclick="toggleSectionEdit(this, 'users')">Edit</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th><h5>Entitlement</h5></th>
+                            <th><h5>Consumed</h5></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Prod</strong></td>
+                            <td>
+                                <div class="metric-row" data-view-mode>
+                                    <div class="metric-value"><span id="prod_limit_display">{{ data.updated_prod_limit }}</span></div>
+                                </div>
+                                <div id="prod_limit_editor" class="inline-editor">
+                                    <input type="number" id="prod_limit" value="{{ data.updated_prod_limit }}" style="width: 100%;" class="track-original form-control"
+                                        data-display-target="prod_limit_display" data-display-type="number" min="0">
+                                </div>
+                            </td>
+                            <td>
+                                <div class="metric-row" data-view-mode>
+                                    <div class="metric-value"><span id="prod_used_display">{{ data.updated_prod_used }}</span></div>
+                                </div>
+                                <div id="prod_used_editor" class="inline-editor">
+                                    <input type="number" id="prod_used" value="{{ data.updated_prod_used }}" style="width: 100%;" class="track-original form-control"
+                                        data-display-target="prod_used_display" data-display-type="number" min="0">
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Test</strong></td>
+                            <td>
+                                <div class="metric-row" data-view-mode>
+                                    <div class="metric-value"><span id="test_limit_display">{{ data.updated_test_limit }}</span></div>
+                                </div>
+                                <div id="test_limit_editor" class="inline-editor">
+                                    <input type="number" id="test_limit" value="{{ data.updated_test_limit }}" style="width: 100%;" class="track-original form-control"
+                                        data-display-target="test_limit_display" data-display-type="number" min="0">
+                                </div>
+                            </td>
+                            <td>
+                                <div class="metric-row" data-view-mode>
+                                    <div class="metric-value"><span id="test_used_display">{{ data.updated_test_used }}</span></div>
+                                </div>
+                                <div id="test_used_editor" class="inline-editor">
+                                    <input type="number" id="test_used" value="{{ data.updated_test_used }}" style="width: 100%;" class="track-original form-control"
+                                        data-display-target="test_used_display" data-display-type="number" min="0">
+                                </div>
+                            </td>
+                        </tr>
+                        <tr class="dev-row">
+                            <td><strong>Dev</strong></td>
+                            <td>
+                                <div class="metric-row" data-view-mode>
+                                    <div class="metric-value"><span id="dev_limit_display">{{ data.updated_dev_limit or 0 }}</span></div>
+                                </div>
+                                <div id="dev_limit_editor" class="inline-editor">
+                                    <input type="number" id="dev_limit" value="{{ data.updated_dev_limit or 0 }}" style="width: 100%;" class="track-original form-control"
+                                        data-display-target="dev_limit_display" data-display-type="number" min="0">
+                                </div>
+                            </td>
+                            <td>
+                                <div class="metric-row" data-view-mode>
+                                    <div class="metric-value"><span id="dev_used_display">{{ data.updated_dev_used or 0 }}</span></div>
+                                </div>
+                                <div id="dev_used_editor" class="inline-editor">
+                                    <input type="number" id="dev_used" value="{{ data.updated_dev_used or 0 }}" style="width: 100%;" class="track-original form-control"
+                                        data-display-target="dev_used_display" data-display-type="number" min="0">
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="actions-bar" style="display:none;">
+        <div class="edit-comment-container" style="width:100%; margin-bottom:10px; display:none;">
+            <label class="metric-label">Comment</label>
+            <textarea class="form-control edit-comment-input"
+                placeholder="Enter the reason for editing this section..."
+                rows="2" style="border-radius:10px;"></textarea>
+        </div>
+    </div>
+
+            </div>
+            <!-- Storage Section -->
+            <div class="metrics-section">
+                <div class="section-header">
+                    <h2>Storage</h2>
+                    <button class="btn edit-btn btn-sm" onclick="toggleSectionEdit(this, 'storage')">Edit</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th><h5>Target (GB)</h5></th>
+                            <th><h5>Actual (GB)</h5></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Prod</strong></td>
+                            <td>
+                                <div class="metric-row" data-view-mode>
+                                    <div class="metric-value"><span id="prod_target_display">{{ "%.4f"|format(data.updated_prod_target_storage_gb or 0) }}</span></div>
+                                </div>
+                                <div id="prod_target_editor" class="inline-editor">
+                                    <input type="number" id="prod_target" step="0.01" value="{{ data.updated_prod_target_storage_gb or 0 }}" style="width: 100%;" class="track-original form-control"
+                                        data-display-target="prod_target_display" data-display-type="number" min="0">
+                                </div>
+                            </td>
+                            <td>
+                                <div class="metric-row" data-view-mode>
+                                    <div class="metric-value"><span id="prod_actual_display">{{ "%.4f"|format(data.updated_prod_storage_gb or 0) }}</span></div>
+                                </div>
+                                <div id="prod_actual_editor" class="inline-editor">
+                                    <input type="number" id="prod_actual" step="0.01" value="{{ data.updated_prod_storage_gb or 0 }}" style="width: 100%;" class="track-original form-control"
+                                        data-display-target="prod_actual_display" data-display-type="number" min="0">
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Test</strong></td>
+                            <td>
+                                <div class="metric-row" data-view-mode>
+                                    <div class="metric-value"><span id="test_target_display">{{ "%.4f"|format(data.updated_test_target_storage_gb or 0) }}</span></div>
+                                </div>
+                                <div id="test_target_editor" class="inline-editor">
+                                    <input type="number" id="test_target" step="0.01" value="{{ data.updated_test_target_storage_gb or 0 }}" style="width: 100%;" class="track-original form-control"
+                                        data-display-target="test_target_display" data-display-type="number" min="0">
+                                </div>
+                            </td>
+                            <td>
+                                <div class="metric-row" data-view-mode>
+                                    <div class="metric-value"><span id="test_actual_display">{{ "%.4f"|format(data.updated_test_storage_gb or 0) }}</span></div>
+                                </div>
+                                <div id="test_actual_editor" class="inline-editor">
+                                    <input type="number" id="test_actual" step="0.01" value="{{ data.updated_test_storage_gb or 0 }}" style="width: 100%;" class="track-original form-control"
+                                        data-display-target="test_actual_display" data-display-type="number" min="0">
+                                </div>
+                            </td>
+                        </tr>
+                        <tr class="dev-row">
+                            <td><strong>Dev</strong></td>
+                            <td>
+                                <div class="metric-row" data-view-mode>
+                                    <div class="metric-value"><span id="dev_target_storage_display">{{ "%.4f"|format(data.updated_dev_target_storage_gb or 0) }}</span></div>
+                                </div>
+                                <div id="dev_target_editor" class="inline-editor">
+                                    <input type="number" id="dev_target" step="0.01" value="{{ data.updated_dev_target_storage_gb or 0 }}" style="width: 100%;" class="track-original form-control"
+                                        data-display-target="dev_target_storage_display" data-display-type="number" min="0">
+                                </div>
+                            </td>
+                            <td>
+                                <div class="metric-row" data-view-mode>
+                                    <div class="metric-value"><span id="dev_actual_display">{{ "%.4f"|format(data.updated_dev_storage_gb or 0) }}</span></div>
+                                </div>
+                                <div id="dev_actual_editor" class="inline-editor">
+                                    <input type="number" id="dev_actual" step="0.01" value="{{ data.updated_dev_storage_gb or 0 }}" style="width: 100%;" class="track-original form-control"
+                                        data-display-target="dev_actual_display" data-display-type="number" min="0">
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="actions-bar" style="display:none;">
+        <div class="edit-comment-container" style="width:100%; margin-bottom:10px; display:none;">
+            <label class="metric-label">Comment</label>
+            <textarea class="form-control edit-comment-input"
+                placeholder="Enter the reason for editing this section..."
+                rows="2" style="border-radius:10px;"></textarea>
+        </div>
+    </div>
+
+            </div>
+
+            <!-- Tickets Section -->
+            <div class="metrics-section">
+            <div class="section-header">
+                <h2>Tickets</h2>
+                <button class="btn edit-btn btn-sm" onclick="toggleSectionEdit(this, 'tickets')">Edit</button>
+            </div>
+
+            <table>
+                
+                <tbody>
+                <!-- Opened -->
+                <tr>
+                    <td><strong>Opened</strong></td>
+                    <td></td>
+                    <td>
+                    <div class="metric-row" data-view-mode>
+                        <div class="metric-value"><span id="opened_display">{{ data.updated_current_opened_tickets }}</span></div>
+                    </div>
+                    <div class="inline-editor">
+                        <input type="number" id="opened"
+                            value="{{ data.updated_current_opened_tickets }}"
+                            class="form-control track-original"
+                            data-display-target="opened_display"
+                            data-display-type="number"
+                            style="width:100%;"
+                            min="0">
+                    </div>
+                    </td>
+                </tr>
+
+                <!-- Closed -->
+                <tr>
+                    <td><strong>Closed</strong></td>
+                    <td></td>
+                    <td>
+                    <div class="metric-row" data-view-mode>
+                        <div class="metric-value"><span id="closed_display">{{ data.updated_current_closed_tickets }}</span></div>
+                    </div>
+                    <div class="inline-editor">
+                        <input type="number" id="closed"
+                            value="{{ data.updated_current_closed_tickets }}"
+                            class="form-control track-original"
+                            data-display-target="closed_display"
+                            data-display-type="number"
+                            style="width:100%;"
+                            min="0">
+                    </div>
+                    </td>
+                </tr>
+
+                <!-- Backlog -->
+                <tr>
+                    <td><strong>Backlog</strong></td>
+                    <td></td>
+                    <td>
+                    <div class="metric-row" data-view-mode>
+                        <div class="metric-value"><span id="curr_backlog_display">{{ data.updated_current_backlog_tickets }}</span></div>
+                    </div>
+                    <div class="inline-editor">
+                        <input type="number" id="curr_backlog"
+                            value="{{ data.updated_current_backlog_tickets }}"
+                            class="form-control track-original"
+                            data-display-target="curr_backlog_display"
+                            data-display-type="number"
+                            style="width:100%;"
+                            min="0">
+                    </div>
+                    </td>
+                </tr>
+
+                <!-- Overall Backlog -->
+                <tr>
+                    <td><strong>Overall Backlog</strong></td>
+                    <td></td>
+                    <td>
+                    <div class="metric-row" data-view-mode>
+                        <div class="metric-value"><span id="overall_backlog_display">{{ data.updated_tickets_backlog }}</span></div>
+                    </div>
+                    <div class="inline-editor">
+                        <input type="number" id="overall_backlog"
+                            value="{{ data.updated_tickets_backlog }}"
+                            class="form-control track-original"
+                            data-display-target="overall_backlog_display"
+                            data-display-type="number"
+                            style="width:100%;"
+                            min="0">
+                    </div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+
+            <div class="actions-bar" style="display:none;">
+                <div class="edit-comment-container" style="width:100%; margin-bottom:10px; display:none;">
+                <label class="metric-label">Comment</label>
+                <textarea class="form-control edit-comment-input"
+                    placeholder="Enter the reason for editing this section..."
+                    rows="2" style="border-radius:10px;"></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+<!-- GLOBAL COMMENT BOX — hidden by default -->
+<div id="globalCommentWrapper" class="global-comment-box-wrapper" style="display:none; margin-bottom:16px;">
+  <!-- Comments + Save button on the same line -->
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+      <div class="global-comment-title">Comments</div>
+ 
+      <button id="globalSave"
+              class="btn btn-success"
+              disabled
+              style="padding:8px 20px; opacity:0.4; transition:0.2s;">
+          Save Changes
+      </button>
+  </div>
+  <!-- Textarea below -->
+  <div class="global-comment-box-inner">
+      <textarea id="globalComment" class="global-comment-textarea" placeholder="Enter the reason for editing this section..."
+            oninput="
+                    const btn = document.getElementById('globalSave');
+                    if (this.value.trim().length > 0) {
+                        btn.disabled = false;
+                        btn.style.opacity = '1';
+                    } else {
+                        btn.disabled = true;
+                        btn.style.opacity = '0.4';
+                    }
+                "
+      ></textarea>
+  </div>
+</div>
+    {% endif %}
+
+<!-- Configuration Section (Collapsible) -->
+<div class="metrics-section" id="customer-config-section">
+    <div class="config-topbar">
+        <button onclick="generatePPT()" class="btn gradient-btn">
+            Generate PowerPoint
+        </button>
+        <button class="btn gradient-btn" id="config-toggle-btn" onclick="toggleConfigVisibilityTitle()">
+            <span id="config-title-arrow">▲</span>
+            Customer Configuration
+        </button>
+    </div>
+    <div id="config-content" class="hidden">
+        <div class="section-subtitle-row">
+            <h3 class="section-subtitle">Basic Configuration</h3>
+            <button class="btn edit-btn btn-sm" onclick="toggleConfigEdit(this)">Edit</button>
+        </div>
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-label">Customer Full Name</div>
+                <div class="metric-row" data-view-mode>
+                   <span id="config_customer_full_name_display">{{ customer_full_name }}</span>
+                </div>
+                <div class="inline-editor">
+                    <input id="config_customer_full_name"
+                           class="form-control track-original"
+                           data-display-target="config_customer_full_name_display"
+                           value="{{ customer_full_name }}">
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">CSM Primary</div>
+                <div class="metric-row" data-view-mode>
+                    <span id="config_csm_primary_display">{{ csm_primary }}</span>
+                </div>
+                <div class="inline-editor">
+                    <input id="config_csm_primary" class="form-control track-original"
+                           data-display-target="config_csm_primary_display"
+                           value="{{ csm_primary }}">
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">CSM Lead</div>
+                <div class="metric-row" data-view-mode>
+                    <span id="config_csm_secondary_display">{{ csm_secondary }}</span>
+                </div>
+                <div class="inline-editor">
+                    <input id="config_csm_secondary" class="form-control track-original"
+                           data-display-target="config_csm_secondary_display"
+                           value="{{ csm_secondary }}">
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Customer UID</div>
+                <div class="metric-row" data-view-mode>
+                    <span id="config_customer_uid_display">
+                        {% if customer_uid %}{{ customer_uid | join(', ') }}{% endif %}
+                    </span>
+                </div>
+                <div class="inline-editor">
+                    <input id="config_customer_uid"
+                           class="form-control"
+                           placeholder="Enter new UID">
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">No. of Environments</div>
+                <div class="metric-row" data-view-mode>
+                    <span id="config_no_env_display">{{ no_of_envs }}</span>
+                </div>
+                <div class="inline-editor">
+                    <select id="config_no_env" class="form-control track-original"
+                            data-display-target="config_no_env_display">
+                        <option value="2" {% if no_of_envs == 2 %}selected{% endif %}>2</option>
+                        <option value="3" {% if no_of_envs == 3 %}selected{% endif %}>3</option>
+                    </select>
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">No. of Months</div>
+                <div class="metric-row" data-view-mode>
+                    <span id="config_no_months_display">{{ no_of_months }}</span>
+                </div>
+                <div class="inline-editor">
+                    <input id="config_no_months" type="number" class="form-control track-original"
+                           data-display-target="config_no_months_display"
+                           value="{{ no_of_months }}">
+                </div>
+            </div>
+            <div class="metric-card note-wide">
+    <div class="metric-label">Customer Notes</div>
+
+    <div class="metric-row" data-view-mode>
+        <span id="config_customer_note_display">{{ customer_note }}</span>
+    </div>
+
+    <div class="inline-editor">
+        <textarea id="config_customer_note"
+                  class="form-control track-original"
+                  data-display-target="config_customer_note_display"
+                  style="border-radius:10px; height:70px; resize:vertical;">{{ customer_note }}</textarea>
+        <div style="font-size:12px; color:#666; text-align:right; margin-top:2px;">
+            <span id="note_char_count">0</span>/125
+        </div>
+    </div>
+</div>
+        </div>
+
+<div style="display:none;">
+        <h3 class="section-subtitle">
+            Color Thresholds
+            <span class="info-icon">ℹ️
+                <div class="tooltip-box">
+                    <pre class="json-preview">{
+    <span class="json-key">"Color1"</span>: <span class="json-editable">99.5</span>,
+    <span class="json-key">"Color2"</span>: <span class="json-editable">97.5</span>,
+    <span class="json-key">"Color3"</span>: <span class="json-editable">0</span>,
+    <span class="json-key">"Invalid"</span>: <span class="json-editable">-1</span>
+}</pre>
+                </div>
+            </span>
+        </h3>
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-label">Availability Thresholds</div>
+                <div class="metric-row" data-view-mode>
+                    <span id="config_thr_availability_display">{{ color_map_thresholds_availability }}</span>
+                </div>
+                <div class="inline-editor">
+                    <textarea id="config_thr_availability"
+                        class="form-control json-editor track-original"
+                        data-display-target="config_thr_availability_display"
+                        data-allowed-keys="Color1,Color2,Color3,Invalid"
+                        data-threshold-type="availability"
+                        data-section-label="Availability Thresholds"
+                    >{{ color_map_thresholds_availability }}</textarea>
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Users Thresholds</div>
+                <div class="metric-row" data-view-mode>
+                    <span id="config_thr_users_display">{{ color_map_thresholds_users }}</span>
+                </div>
+                <div class="inline-editor">
+                    <textarea id="config_thr_users"
+                        class="form-control json-editor track-original"
+                        data-display-target="config_thr_users_display"
+                        data-allowed-keys="Color1,Color2,Color3,Invalid"
+                        data-threshold-type="increasing"
+                        data-section-label="Users Thresholds"
+                    >{{ color_map_thresholds_users }}</textarea>
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Storage Thresholds</div>
+                <div class="metric-row" data-view-mode>
+                    <span id="config_thr_storage_display">{{ color_map_thresholds_storage }}</span>
+                </div>
+                <div class="inline-editor">
+                    <textarea id="config_thr_storage"
+                        class="form-control json-editor track-original"
+                        data-display-target="config_thr_storage_display"
+                        data-allowed-keys="Color1,Color2,Color3,Invalid"
+                        data-threshold-type="increasing"
+                        data-section-label="Storage Thresholds"
+                    >{{ color_map_thresholds_storage }}</textarea>
+                </div>
+            </div>
+        </div>
+
+        <h3 class="section-subtitle">
+            Color Codes
+            <span class="info-icon">ℹ️
+                <div class="tooltip-box">
+                    <pre class="json-preview">{
+    <span class="json-key">"Color1"</span>: [<span class="json-editable">0, 176, 80</span>],
+    <span class="json-key">"Color2"</span>: [<span class="json-editable">255, 192, 0</span>]
+}</pre>
+                </div>
+            </span>
+        </h3>
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-label">Indicator Color Rules</div>
+                <div class="metric-row" data-view-mode>
+                    <span id="config_indicator_colors_display">{{ indicator_color_code_rules }}</span>
+                </div>
+                <div class="inline-editor">
+                    <textarea id="config_indicator_colors"
+                        class="form-control json-editor track-original"
+                        data-display-target="config_indicator_colors_display"
+                        data-allowed-keys="Color1,Color2,Color3,Invalid"
+                    >{{ indicator_color_code_rules }}</textarea>
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Circle Color Rules</div>
+                <div class="metric-row" data-view-mode>
+                    <span id="config_circle_colors_display">{{ circle_color_code_rules }}</span>
+                </div>
+                <div class="inline-editor">
+                    <textarea id="config_circle_colors"
+                        class="form-control json-editor track-original"
+                        data-display-target="config_circle_colors_display"
+                        data-allowed-keys="Color1,Color2,Color3,Invalid"
+                    >{{ circle_color_code_rules }}</textarea>
+                </div>
+            </div>
+        </div>
+
+        <h3 class="section-subtitle">
+            Customer Mapping Notes
+            <span class="info-icon">ℹ️
+                <div class="tooltip-box">Max 3 lines • 70 chars/line
+                    <pre class="json-preview">{
+    <span class="json-key">"color1"</span>: "<span class="json-editable">Edit note</span>"
+}</pre>
+                </div>
+            </span>
+        </h3>
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-label">Availability Notes</div>
+                <div class="metric-row" data-view-mode>
+                    <span id="config_notes_availability_display" class="note-display">{{ notes_availability }}</span>
+                </div>
+                <div class="inline-editor">
+                    <textarea id="config_notes_availability"
+                        oninput="notesLiveValidate(event)"
+                        class="form-control json-editor track-original"
+                        data-display-target="config_notes_availability_display"
+                        data-allowed-keys="color1,color2,color3,invalid"
+                        data-section-label="Availability Notes"
+                    >{{ notes_availability }}</textarea>
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Users Notes</div>
+                <div class="metric-row" data-view-mode>
+                    <span id="config_notes_users_display" class="note-display">{{ notes_users }}</span>
+                </div>
+                <div class="inline-editor">
+                    <textarea id="config_notes_users"
+                        oninput="notesLiveValidate(event)"
+                        class="form-control json-editor track-original"
+                        data-display-target="config_notes_users_display"
+                        data-allowed-keys="color1,color2,color3,invalid"
+                        data-section-label="Users Notes"
+                    >{{ notes_users }}</textarea>
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Storage Notes</div>
+                <div class="metric-row" data-view-mode>
+                    <span id="config_notes_storage_display" class="note-display">{{ notes_storage }}</span>
+                </div>
+                <div class="inline-editor">
+                    <textarea id="config_notes_storage"
+                        oninput="notesLiveValidate(event)"
+                        class="form-control json-editor track-original"
+                        data-display-target="config_notes_storage_display"
+                        data-allowed-keys="color1,color2,color3,invalid"
+                        data-section-label="Storage Notes"
+                    >{{ notes_storage }}</textarea>
+                </div>
+            </div>
+        </div>
+</div>
+        <div id="config-save-container" style="display:none; margin-top: 20px;">
+    
+    <!-- NEW COMMENT FIELD -->
+    <div style="margin-bottom: 15px;">
+        <label class="metric-label">Comment</label>
+        <textarea id="config_edit_comment"
+                  class="form-control"
+                  style="border-radius:10px; height:80px;"
+                  placeholder="Enter the reason why you updated configuration..."></textarea>
+    </div>
+
+    <button class="btn btn-success" style="padding:10px 25px; font-size:16px;"
+            onclick="saveConfiguration()">Save Changes</button>
+
+</div>
+    </div>
+</div>
+    </div>
+
+{% block modals %}
+    <!-- Custom Modal for Alerts -->
+    <div id="customAlertModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="customAlertTitle">Alert</h5>
+                <button type="button" class="modal-close" onclick="closeCustomAlert()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="customAlertMessage"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" onclick="closeCustomAlert()">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Modal for Confirmations -->
+    <div id="customConfirmModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="customConfirmTitle">Confirmation</h5>
+                <button type="button" class="modal-close" onclick="closeCustomConfirm()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="customConfirmMessage"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" id="customConfirmButton">Confirm</button>
+                <button type="button" class="btn btn-danger btn-sm" onclick="closeCustomConfirm()">Cancel</button>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+<script>
+    const metricsContainer = document.getElementById('metrics-container');
+    const customerSelect = document.getElementById('customer');
+    const monthSelect = document.getElementById('month');
+    const customerSearch = document.getElementById('customer-search');
+    
+    
+    const noOfEnvs = parseInt(metricsContainer.dataset.noOfEnvs) || 2;
+    if (noOfEnvs === 2) {
+        document.body.classList.add('hide-dev-rows');
+    }
+
+    function getLoadedCustomer() {
+        return metricsContainer?.dataset.loadedCustomer || '';
+    }
+
+    function getLoadedMonth() {
+        return metricsContainer?.dataset.loadedMonth || '';
+    }
+
+    function resetMonthOptions() {
+        if (!monthSelect) return;
+        monthSelect.innerHTML = '<option value="" selected>-- Select Month --</option>';
+        monthSelect.disabled = true;
+    }
+
+    function populateMonths(customer, preselectMonth) {
+        if (!monthSelect) return;
+        resetMonthOptions();
+        if (!customer) return;
+
+        monthSelect.disabled = true;
+        fetch(`/get_months/${encodeURIComponent(customer)}`)
+            .then(response => response.ok ? response.json() : Promise.reject('Failed to fetch'))
+            .then(months => {
+                resetMonthOptions();
+                months.forEach(month => {
+                    const option = document.createElement('option');
+                    option.value = month;
+                    option.text = new Date(month).toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+                    if (preselectMonth && month === preselectMonth) option.selected = true;
+                    monthSelect.appendChild(option);
+                });
+            })
+            .catch(error => {
+                console.error('Unable to load months:', error);
+                resetMonthOptions();
+            })
+            .finally(() => monthSelect.disabled = false);
+    }
+
+    function onCustomerChange(selectedCustomerValue) {
+        customerSelect.value = selectedCustomerValue || '';
+
+        if (!selectedCustomerValue) {
+            resetMonthOptions();
+            return;
+        }
+
+        const preselect = selectedCustomerValue === getLoadedCustomer() ? getLoadedMonth() : '';
+        populateMonths(selectedCustomerValue, preselect);
+    }
+
+    if (customerSearch) {
+        customerSearch.addEventListener('input', () => {
+            const val = customerSearch.value.trim();
+
+            if (!val) {
+                onCustomerChange('');
+                return;
+            }
+
+            // TODO: Replace this with your autocomplete logic to detect a selected customer
+            // Until then, reset months while no valid customer is selected
+            resetMonthOptions();
+        });
+    }
+
+    if (customerSelect) {
+        customerSelect.addEventListener('change', () => {
+            onCustomerChange(customerSelect.value);
+        });
+    }
+
+    (function init() {
+        const initialCustomer = customerSelect.value || '';
+        if (initialCustomer) {
+            populateMonths(initialCustomer, getLoadedMonth());
+        } else {
+            resetMonthOptions();
+        }
+    })();
+
+
+    (function initMonthSelect() {
+        if (!monthSelect) return;
+        const initialCustomer = customerSelect?.value || '';
+        if (initialCustomer) {
+            populateMonths(initialCustomer, getLoadedMonth());
+        } else {
+            resetMonthOptions();
+            monthSelect.disabled = true;
+        }
+    })();
+
+    const trackedInputs = Array.from(document.querySelectorAll('.track-original'));
+    trackedInputs.forEach(input => {
+        if (input.dataset.originalValue === undefined) {
+            input.dataset.originalValue = input.value;
+        }
+    });
+
+    function parseJSONStandard(str) {
+        try {
+            return JSON.parse(str.replace(/'/g, '"').replace(/\n/g, "\\n"));
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function validateCsmNames() {
+        const primary = document.getElementById("config_csm_primary");
+        const secondary = document.getElementById("config_csm_secondary");
+        const pattern = /^[A-Za-z' ]+$/;
+        let errors = [];
+        let invalidFields = [];
+
+        primary.classList.remove("error-field");
+        secondary.classList.remove("error-field");
+
+        function validateField(field, label) {
+            const value = field.value.trim();
+            if (!value) {
+                errors.push(`❌ ${label} cannot be empty.`);
+                invalidFields.push(field);
+                return;
+            }
+            if (!pattern.test(value)) {
+                errors.push(`❌ ${label} contains invalid characters.`);
+                invalidFields.push(field);
+            }
+        }
+
+        validateField(primary, "CSM Primary");
+        validateField(secondary, "CSM Secondary");
+
+        if (errors.length > 0) {
+            invalidFields.forEach(f => f.classList.add("error-field"));
+            showCustomAlert(errors.join("\n\n"), "Invalid CSM Names");
+            return false;
+        }
+        return true;
+    }
+
+    function validateAllThresholds() {
+        const fields = document.querySelectorAll("textarea.json-editor[data-threshold-type]");
+        let errors = [];
+        let invalidFields = [];
+
+        fields.forEach(f => {
+            const type = f.dataset.thresholdType;
+            const section = f.dataset.sectionLabel || f.id;
+            const originalText = f.dataset.originalValue || f.value;
+            let json;
+            try {
+                json = JSON.parse(f.value.replace(/'/g, '"').replace(/\n/g, "\\n"));
+            } catch (e) {
+                errors.push(`❌ Invalid JSON in ${section}.`);
+                invalidFields.push({ field: f, original: originalText });
+                return;
+            }
+
+            const c1 = Number(json.Color1);
+            const c2 = Number(json.Color2);
+            const c3 = Number(json.Color3);
+            const inv = Number(json.Invalid);
+
+            if ([c1, c2, c3, inv].some(v => isNaN(v))) {
+                errors.push(`❌ Non-numeric values in ${section}.`);
+                invalidFields.push({ field: f, original: originalText });
+                return;
+            }
+
+            if (type === "availability") {
+                if (!(c1 > c2 && c2 > c3 && c3 > inv)) {
+                    errors.push(`❌ ${section}: Expected Color1 > Color2 > Color3 > Invalid`);
+                    invalidFields.push({ field: f, original: originalText });
+                }
+            }
+
+            if (type === "increasing") {
+                if (inv === 0 || inv === -1) {
+                    if (!(c1 < c2 && c2 < c3)) {
+                        errors.push(`❌ ${section}: Expected Color1 < Color2 < Color3`);
+                        invalidFields.push({ field: f, original: originalText });
+                    }
+                } else {
+                    if (!(c1 < c2 && c2 < c3 && c3 < inv)) {
+                        errors.push(`❌ ${section}: Expected Color1 < Color2 < Color3 < Invalid`);
+                        invalidFields.push({ field: f, original: originalText });
+                    }
+                }
+            }
+        });
+
+        if (errors.length > 0) {
+            showCustomAlert(errors.join("\n\n"), "Threshold Validation Failed");
+            invalidFields.forEach(item => {
+                item.field.value = item.original;
+                item.field.classList.add("error-field");
+            });
+            return false;
+        }
+        return true;
+    }
+
+function validateJsonFields() {
+    const fields = [
+        document.getElementById("config_notes_availability"),
+        document.getElementById("config_notes_users"),
+        document.getElementById("config_notes_storage")
+    ];
+
+    let errors = [];
+    let invalidFields = [];
+
+    fields.forEach(f => {
+        if (!f) return;  // skip missing fields
+
+        if (!f.dataset.originalValue) {
+            f.dataset.originalValue = f.value;
+        }
+
+        const sectionLabel = f.dataset.sectionLabel || "Notes Section";
+        const allowedKeys = ["Color1", "Color2", "Color3", "Invalid"];
+        const originalText = f.dataset.originalValue;
+
+        let parsed;
+        try {
+            parsed = JSON.parse(
+                f.value.replace(/'/g, '"').replace(/\n/g, "\\n")
+            );
+        } catch (e) {
+            errors.push(`❌ Invalid JSON in ${sectionLabel}.`);
+            invalidFields.push({ field: f, original: originalText });
+            return;
+        }
+
+        const userKeys = Object.keys(parsed);
+        userKeys.forEach(key => {
+            if (!allowedKeys.includes(key)) {
+                errors.push(`❌ Invalid key "${key}" in ${sectionLabel}.`);
+                invalidFields.push({ field: f, original: originalText });
+            }
+        });
+    });
+
+    if (errors.length === 0) return true;
+
+    showCustomAlert(errors.join("\n\n"), "Multiple Issues Found");
+
+    invalidFields.forEach(item => {
+        item.field.value = item.original;
+    });
+
+    return false;
+}
+
+    function parseNotesJsonTolerant(text) {
+        if (!text || typeof text !== 'string') return {};
+        let s = text.trim();
+        if (s.startsWith("'") || (s.indexOf("'") !== -1 && s.indexOf('"') === -1)) {
+            s = s.replace(/'/g, '"');
+        }
+        return JSON.parse(s);
+    }
+
+    function validateSingleNotesText(fieldId, text) {
+        try {
+            const data = parseNotesJsonTolerant(text);
+            for (const key in data) {
+                if (!Object.prototype.hasOwnProperty.call(data, key)) continue;
+                let val = data[key];
+                if (val === null || val === undefined) continue;
+                if (typeof val !== 'string') val = String(val);
+                const lines = val.split(/\r?\n/);
+                if (lines.length > 3) {
+                    return { ok: false, message: `'${key}' has ${lines.length} lines (max 3).`, fieldId };
+                }
+                for (let i = 0; i < lines.length; i++) {
+                    const len = lines[i].length;
+                    if (len > 70) {
+                        return { ok: false, message: `'${key}' line ${i+1} is ${len} chars (max 70).`, fieldId };
+                    }
+                }
+            }
+            return { ok: true };
+        } catch (err) {
+            return { ok: false, message: `Invalid JSON: ${err.message}`, fieldId };
+        }
+    }
+
+    function validateNotesLimits() {
+        const fields = [
+            { id: 'config_notes_availability', label: 'Availability' },
+            { id: 'config_notes_users', label: 'Users' },
+            { id: 'config_notes_storage', label: 'Storage' }
+        ];
+
+        for (const f of fields) {
+            const el = document.getElementById(f.id);
+            if (!el) continue;
+            const raw = el.value || el.textContent || '';
+            const res = validateSingleNotesText(f.id, raw);
+            el.classList.remove('error-field');
+            removeWarningElement(el);
+            if (!res.ok) {
+                el.classList.add('error-field');
+                addInlineWarning(el, `${f.label} notes invalid: ${res.message}`);
+                if (typeof showCustomAlert === 'function') {
+                    showCustomAlert(`${f.label} notes invalid: ${res.message}`, 'Validation Error');
+                } else {
+                    alert(`${f.label} notes invalid: ${res.message}`);
+                }
+                el.focus();
+                return false;
+            }
+        }
+        return true;
+    }
+
+    function notesLiveValidate(ev) {
+        const el = ev.target;
+        if (!el) return;
+        el.classList.remove('error-field');
+        removeWarningElement(el);
+
+        const raw = el.value || '';
+        const res = validateSingleNotesText(el.id, raw);
+        if (!res.ok) {
+            el.classList.add('error-field');
+            addInlineWarning(el, res.message);
+        } else {
+            el.classList.remove('error-field');
+            removeWarningElement(el);
+        }
+    }
+
+    function addInlineWarning(textareaEl, message) {
+        removeWarningElement(textareaEl);
+        const warn = document.createElement('div');
+        warn.className = 'note-warning';
+        warn.id = textareaEl.id + '_warn';
+        warn.textContent = message;
+        textareaEl.insertAdjacentElement('afterend', warn);
+    }
+
+    function removeWarningElement(textareaEl) {
+        const ex = document.getElementById(textareaEl.id + '_warn');
+        if (ex) ex.remove();
+    }
+
+    /*document.addEventListener('DOMContentLoaded', function () {
+        const ids = ['config_notes_availability', 'config_notes_users', 'config_notes_storage'];
+        ids.forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            if (!el.getAttribute('data-notes-listener')) {
+                el.addEventListener('input', notesLiveValidate);
+                el.setAttribute('data-notes-listener', '1');
+            }
+        });
+    });*/
+
+document.addEventListener("DOMContentLoaded", function () {
+    const noteBox = document.getElementById("config_customer_note");
+    const counter = document.getElementById("note_char_count");
+
+    if (noteBox && counter) {
+        counter.innerText = noteBox.value.length;
+
+        noteBox.addEventListener("input", () => {
+            counter.innerText = noteBox.value.length;
+        });
+    }
+});
+
+function saveConfiguration() {
+    const comment = document.getElementById("config_edit_comment").value.trim();
+    const customerNote = document.getElementById("config_customer_note").value.trim();
+
+    if (!comment) {
+        showCustomAlert("Please enter a reason for updating configuration.", "Comment Required");
+        return;
+    }
+
+    if (customerNote.length > 125) {
+        showCustomAlert("Customer note may not exceed 125 characters.", "Limit Exceeded");
+        return;
+    }
+
+    /*if (!validateJsonFields()) {
+        return; 
+    }
+
+    /*if (!validateAllThresholds()) return;*/
+
+    //if(!validateNotesLimits()) return;
+
+    if (!validateCsmNames()) return;
+
+    const payload = {
+        customer: "{{ selected_customer }}",
+        month: "{{ selected_month }}",
+
+        customer_full_name: document.getElementById('config_customer_full_name').value,
+        csm_primary: document.getElementById('config_csm_primary').value,
+        csm_secondary: document.getElementById('config_csm_secondary').value,
+        new_customer_uid: document.getElementById('config_customer_uid').value,
+        no_of_envs: document.getElementById('config_no_env').value,
+        no_of_months: document.getElementById('config_no_months').value,
+        customer_note: document.getElementById('config_customer_note').value,
+        thr_availability: document.getElementById('config_thr_availability').value,
+        thr_users: document.getElementById('config_thr_users').value,
+        thr_storage: document.getElementById('config_thr_storage').value,
+
+        indicator_colors: document.getElementById('config_indicator_colors').value,
+        circle_colors: document.getElementById('config_circle_colors').value,
+
+        notes_availability: document.getElementById('config_notes_availability').value,
+        notes_users: document.getElementById('config_notes_users').value,
+        notes_storage: document.getElementById('config_notes_storage').value,
+        edit_comment: comment
+    };
+
+    showCustomConfirm(
+        "Are you sure you want to save the configuration changes?",
+        () => {
+            fetch('/save_config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(r => r.json())
+            .then(res => {
+                if (res.success) {
+                    sendAuditComment(payload.customer, payload.month, "config", comment, "UPDATE");
+                    showCustomAlert("Configuration saved successfully!", "Success");
+                    setTimeout(() => location.reload(), 600);
+
+                } else {
+                    showCustomAlert(res.message || "An error occurred while saving.", "Error");
+                }
+            })
+            .catch(() => {
+                showCustomAlert("Cannot reach server. Check network or backend.", "Error");
+            });
+        },
+        "Confirm Configuration Changes"
+    );
+}
+
+    function formatDisplayValue(value, type) {
+        const num = Number(value);
+        if (!Number.isNaN(num)) {
+            if (type === 'number') return num.toFixed(4);
+            if (type === 'percent') return num.toFixed(2) + "%";
+        }
+        return value;
+    }
+
+    function updateDisplayForInput(input, value) {
+        if (!input) return;
+        const displayId = input.dataset.displayTarget;
+        if (!displayId) return;
+        const displayEl = document.getElementById(displayId);
+        if (!displayEl) return;
+        const type = input.dataset.displayType || 'number';
+        displayEl.textContent = formatDisplayValue(value, type);
+    }
+
+    function updateInputState(input, value) {
+        if (!input) return;
+        const stringValue = `${value}`;
+        input.value = stringValue;
+        input.dataset.originalValue = stringValue;
+        updateDisplayForInput(input, stringValue);
+    }
+
+    function revertInput(input) {
+        if (!input) return;
+        const original = input.dataset.originalValue ?? '';
+        input.value = original;
+        updateDisplayForInput(input, original);
+    }
+
+    function revertInputs(inputs) {
+        inputs.forEach(revertInput);
+    }
+
+    function ensureCustomerAndMonth() {
+        const customer = getLoadedCustomer();
+        const month = getLoadedMonth();
+        if (!customer || !month) {
+            showCustomAlert('Please load a customer and month.', 'Action Required');
+            return null;
+        }
+        return { customer, month };
+    }
+</script>
+<script>
+
+    // Insert this in your <script> (before saveAvailability/saveUsers/saveStorage/saveTickets)
+function getGlobalEditCommentOrAlert(sectionName) {
+    const g = document.getElementById('globalComment');
+    const val = g ? g.value.trim() : '';
+    if (val) return val;
+
+    // map section -> friendly message
+    const messageMap = {
+        availability: "Please enter a reason for changing Availability in the global comment box.",
+        users:        "Please enter a reason for changing Users in the global comment box.",
+        storage:      "Please enter a reason for changing Storage in the global comment box.",
+        tickets:      "Please enter a reason for changing Tickets in the global comment box.",
+        config:       "Please enter a reason for changing Configuration."
+    };
+
+    const msg = messageMap[sectionName] || "Please enter a reason in the global comment box.";
+    showCustomAlert(msg, "Comment Required");
+    return null;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    let currentEditingSectionName = null;
+    let currentEditButton = null;
+
+    const globalCommentWrapper = document.getElementById('globalCommentWrapper');
+    const globalComment = document.getElementById('globalComment');
+    const globalSave = document.getElementById('globalSave');
+    const globalCancel = document.getElementById('globalCancel');
+
+    // map section name -> existing save function name
+    const SAVE_FN_MAP = {
+        availability: 'saveAvailability',
+        users: 'saveUsers',
+        storage: 'saveStorage',
+        tickets: 'saveTickets',
+        config: 'saveConfiguration'
+    };
+
+    if (globalComment) {
+        globalComment.addEventListener('input', () => {
+            if (globalSave) globalSave.disabled = globalComment.value.trim().length === 0;
+        });
+    }
+
+    if (globalSave) {
+        globalSave.addEventListener('click', () => {
+            if (!currentEditingSectionName) {
+                showCustomAlert('No section is currently selected for saving.', 'Error');
+                return;
+            }
+            const fnName = SAVE_FN_MAP[currentEditingSectionName];
+            if (!fnName || typeof window[fnName] !== 'function') {
+                showCustomAlert('No save function available for this section.', 'Error');
+                return;
+            }
+            // call the save function for the active section — that function will call getGlobalEditCommentOrAlert internally
+            window[fnName]();
+        });
+    }
+
+    if (globalCancel) {
+        globalCancel.addEventListener('click', () => {
+            if (!currentEditButton || !currentEditingSectionName) return;
+            // use toggleSectionEdit to close current section
+            toggleSectionEdit(currentEditButton, currentEditingSectionName, false);
+        });
+    }
+
+    // Expose small helper so toggleSectionEdit can set the current editing references
+    window.__globalCommentUI = {
+        setActive: (sectionName, button) => {
+            currentEditingSectionName = sectionName;
+            currentEditButton = button;
+            if (globalCommentWrapper) globalCommentWrapper.style.display = 'block';
+            if (globalCancel) globalCancel.style.display = 'inline-block';
+            if (globalSave) globalSave.style.display = 'inline-block';
+            if (globalComment) { globalComment.value = ''; globalSave.disabled = true; }
+        },
+        clearActive: () => {
+            currentEditingSectionName = null;
+            currentEditButton = null;
+            if (globalCommentWrapper) globalCommentWrapper.style.display = 'none';
+            if (globalCancel) globalCancel.style.display = 'none';
+            if (globalSave) globalSave.style.display = 'none';
+            if (globalComment) { globalComment.value = ''; globalSave.disabled = true; }
+        }
+    };
+});
+
+
+    function saveAvailability() {
+    const section = document.querySelector(
+        "#availability_display"
+    ).closest(".metrics-section");
+
+    const editComment = getGlobalEditCommentOrAlert('availability');
+    if (!editComment) return;
+
+
+        const state = ensureCustomerAndMonth();
+        if (!state) return;
+
+        const availabilityInput = document.getElementById('availability');
+        const targetInput = document.getElementById('target');
+        const availabilityValue = parseFloat(availabilityInput.value);
+        const targetValue = parseFloat(targetInput.value);
+
+        if (Number.isNaN(availabilityValue) || Number.isNaN(targetValue)) {
+            showCustomAlert('Please enter valid numbers for availability and target.', 'Validation Error');
+            revertInputs([availabilityInput, targetInput]);
+            return;
+        }
+
+        if (availabilityValue > 100 || targetValue > 100) {
+            showCustomAlert('Availability and Target values must be ≤ 100%.', 'Validation Error');
+            revertInputs([availabilityInput, targetInput]);
+            return;
+        }
+
+        const availabilityString = availabilityValue.toFixed(2);
+        const targetString = targetValue.toFixed(2);
+
+        const onConfirm = () => {
+            const formData = new FormData();
+            formData.append('customer', state.customer);
+            formData.append('month', state.month);
+            formData.append('availability', availabilityString);
+            formData.append('target', targetString);
+            formData.append('edit_comment', editComment);
+            
+            fetch('/save_availability', { method: 'POST', body: formData })
+                .then(response => response.json())
+                .then(data => {
+                    showCustomAlert(data.message, data.success ? 'Success' : 'Error');
+                    if (data.success) {
+                        updateInputState(availabilityInput, availabilityString);
+                        updateInputState(targetInput, targetString);
+                        const section = availabilityInput.closest('.metrics-section');
+                        const editButton = section.querySelector('.section-header .btn');
+                        sendAuditComment(state.customer, state.month, "availability", editComment, "UPDATE");
+                        toggleSectionEdit(editButton, 'availability', false);
+                    } else {
+                        revertInputs([availabilityInput, targetInput]);
+                    }
+                })
+                .catch(error => {
+                    showCustomAlert(`Error saving availability: ${error.message}`, 'Request Failed');
+                    revertInputs([availabilityInput, targetInput]);
+                });
+        };
+
+        showCustomConfirm(`Save Availability: ${availabilityString}% and Target: ${targetString}%?`, onConfirm, 'Confirm Changes');
+    }
+
+    function saveUsers() {
+    const section = document.querySelector(
+        "#prod_limit_display"
+    ).closest(".metrics-section");
+
+    const editComment = getGlobalEditCommentOrAlert('users');
+    if (!editComment) return;
+
+
+        const state = ensureCustomerAndMonth();
+        if (!state) return;
+
+        const prodLimitInput = document.getElementById('prod_limit');
+        const prodUsedInput = document.getElementById('prod_used');
+        const testLimitInput = document.getElementById('test_limit');
+        const testUsedInput = document.getElementById('test_used');
+        const devLimitInput = document.getElementById('dev_limit');
+        const devUsedInput = document.getElementById('dev_used');
+
+        const inputs = [prodLimitInput, prodUsedInput, testLimitInput, testUsedInput, devLimitInput, devUsedInput];
+        const values = inputs.map(input => parseInt(input.value, 10));
+
+        if (values.some(value => Number.isNaN(value) || value < 0)) {
+            showCustomAlert('All user values must be valid non-negative numbers.', 'Validation Error');
+            revertInputs(inputs);
+            return;
+        }
+
+        const [prodLimit, prodUsed, testLimit, testUsed, devLimit, devUsed] = values;
+
+        const warnings = [];
+        if (prodUsed > prodLimit) warnings.push('Prod Used > Limit');
+        if (testUsed > testLimit) warnings.push('Test Used > Limit');
+        if (devLimit > 0 && devUsed > devLimit) warnings.push('Dev Used > Limit');
+
+        let msg = `Save Users?\n\nProd: ${prodUsed.toLocaleString()} / ${prodLimit.toLocaleString()}\n` +
+                `Test: ${testUsed.toLocaleString()} / ${testLimit.toLocaleString()}`;
+
+        // Only show Dev if 3 environments
+        const noOfEnvs = parseInt(document.getElementById('metrics-container').dataset.noOfEnvs) || 2;
+        if (noOfEnvs === 3) {
+            msg += `\nDev: ${devUsed.toLocaleString()} / ${devLimit.toLocaleString()}`;
+        }
+
+        if (warnings.length > 0) msg += `\n\nWarning: ${warnings.join(', ')}`;
+
+        const onConfirm = () => {
+            const formData = new FormData();
+            formData.append('customer', state.customer);
+            formData.append('month', state.month);
+            formData.append('prod_limit', prodLimit);
+            formData.append('prod_used', prodUsed);
+            formData.append('test_limit', testLimit);
+            formData.append('test_used', testUsed);
+            formData.append('dev_limit', devLimit);
+            formData.append('dev_used', devUsed);
+            formData.append('edit_comment', editComment);
+            
+            fetch('/save_users', { method: 'POST', body: formData })
+                .then(response => response.json())
+                .then(data => {
+                    showCustomAlert(data.message, data.success ? 'Success' : 'Error');
+                    if (data.success) {
+                        updateInputState(prodLimitInput, prodLimit);
+                        updateInputState(prodUsedInput, prodUsed);
+                        updateInputState(testLimitInput, testLimit);
+                        updateInputState(testUsedInput, testUsed);
+                        updateInputState(devLimitInput, devLimit);
+                        updateInputState(devUsedInput, devUsed);
+                        const section = prodLimitInput.closest('.metrics-section');
+                        const editButton = section.querySelector('.section-header .btn');
+                        sendAuditComment(state.customer, state.month, "users", editComment, "UPDATE");
+                        toggleSectionEdit(editButton, 'users', false);
+                    } else {
+                        revertInputs(inputs);
+                    }
+                })
+                .catch(error => {
+                    showCustomAlert(`Error saving users data: ${error.message}`, 'Request Failed');
+                    revertInputs(inputs);
+                });
+        };
+
+        showCustomConfirm(msg, onConfirm, 'Confirm User Changes');
+    }
+
+    function saveStorage() {
+    const section = document.querySelector(
+        "#prod_target_display"
+    ).closest(".metrics-section");
+
+    const editComment = getGlobalEditCommentOrAlert('storage');
+    if (!editComment) return;
+
+
+        const state = ensureCustomerAndMonth();
+        if (!state) return;
+
+        const prodTargetInput = document.getElementById('prod_target');
+        const prodActualInput = document.getElementById('prod_actual');
+        const testTargetInput = document.getElementById('test_target');
+        const testActualInput = document.getElementById('test_actual');
+        const devTargetInput = document.getElementById('dev_target');
+        const devActualInput = document.getElementById('dev_actual');
+        const inputs = [prodTargetInput, prodActualInput, testTargetInput, testActualInput, devTargetInput, devActualInput];
+        const values = inputs.map(input => parseFloat(input.value));
+
+        if (values.some(value => Number.isNaN(value) || value < 0)) {
+            showCustomAlert('All storage values must be valid non-negative numbers.', 'Validation Error');
+            revertInputs(inputs);
+            return;
+        }
+
+        const [prodTarget, prodActual, testTarget, testActual, devTarget, devActual] = values;
+
+        const onConfirm = () => {
+            const formData = new FormData();
+            formData.append('customer', state.customer);
+            formData.append('month', state.month);
+            formData.append('prod_target', prodTarget);
+            formData.append('prod_actual', prodActual);
+            formData.append('test_target', testTarget);
+            formData.append('test_actual', testActual);
+            formData.append('dev_target', devTarget);
+            formData.append('dev_actual', devActual);
+            formData.append('edit_comment', editComment);
+            
+            fetch('/save_storage', { method: 'POST', body: formData })
+                .then(response => response.json())
+                .then(data => {
+                    showCustomAlert(data.message, data.success ? 'Success' : 'Error');
+                    if (data.success) {
+                        updateInputState(prodTargetInput, prodTarget);
+                        updateInputState(prodActualInput, prodActual);
+                        updateInputState(testTargetInput, testTarget);
+                        updateInputState(testActualInput, testActual);
+                        updateInputState(devTargetInput, devTarget);
+                        updateInputState(devActualInput, devActual);
+                        const section = prodTargetInput.closest('.metrics-section');
+                        const editButton = section.querySelector('.section-header .btn');
+                        sendAuditComment(state.customer, state.month, "storage", editComment, "UPDATE");
+                        toggleSectionEdit(editButton, 'storage', false);
+                    } else {
+                        revertInputs(inputs);
+                    }
+                })
+                .catch(error => {
+                    showCustomAlert(`Error saving storage data: ${error.message}`, 'Request Failed');
+                    revertInputs(inputs);
+                });
+        };
+
+        const noOfEnvs = parseInt(document.getElementById('metrics-container').dataset.noOfEnvs) || 2;
+
+        let msg = `Save Storage?\n\nProd : ${prodTarget.toFixed(4)} / ${prodActual.toFixed(4)} \n` +
+                `Test : ${testTarget.toFixed(4)} / ${testActual.toFixed(4)} `;
+
+        if (noOfEnvs === 3) {
+            msg += `\nDev : ${devTarget.toFixed(4)} / ${devActual.toFixed(4)} `;
+        }
+
+        const warnings = [];
+        if (prodActual > prodTarget) warnings.push('Prod Actual > Target');
+        if (testActual > testTarget) warnings.push('Test Actual > Target');
+        if (noOfEnvs === 3 && devActual > devTarget) warnings.push('Dev Actual > Target');
+
+        if (warnings.length > 0) msg += `\n\nWarning: ${warnings.join(', ')}`;
+
+        showCustomConfirm(msg, onConfirm, 'Confirm Storage Changes');
+    }
+
+function saveTickets() {
+
+    const state = ensureCustomerAndMonth();
+    if (!state) return;
+
+    // Correctly get THIS section (Tickets)
+    const section = document.querySelector("#opened_display").closest(".metrics-section");
+
+    // Get comment
+    const editComment = getGlobalEditCommentOrAlert('tickets'); 
+    if (!editComment) return;
+
+
+    // Inputs
+    const openedInput = document.getElementById('opened');
+    const closedInput = document.getElementById('closed');
+    const currBacklogInput = document.getElementById('curr_backlog');
+    const overallBacklogInput = document.getElementById('overall_backlog');
+
+    const inputs = [openedInput, closedInput, currBacklogInput, overallBacklogInput];
+    const values = inputs.map(input => parseInt(input.value, 10));
+
+    if (values.some(v => Number.isNaN(v) || v < 0)) {
+        showCustomAlert('Ticket counts must be valid non-negative numbers.', 'Validation Error');
+        revertInputs(inputs);
+        return;
+    }
+
+    const [opened, closed, curr_backlog, overall_backlog] = values;
+
+    const payload = {
+        customer: state.customer,
+        month: state.month,
+        opened,
+        closed,
+        curr_backlog,
+        overall_backlog,
+        edit_comment: editComment
+    };
+
+    const onConfirm = () => {
+        fetch('/save_tickets', {
+            method: 'POST',
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        })
+        .then(r => r.json())
+        .then(res => {
+            showCustomAlert(res.message, res.success ? 'Success' : 'Error');
+            if (res.success) {
+
+                // Update UI
+                updateInputState(openedInput, opened);
+                updateInputState(closedInput, closed);
+                updateInputState(currBacklogInput, curr_backlog);
+                updateInputState(overallBacklogInput, overall_backlog);
+
+                // Exit edit mode
+                const editBtn = section.querySelector('.section-header .btn');
+                sendAuditComment(state.customer, state.month, "tickets", editComment, "UPDATE");
+                toggleSectionEdit(editBtn, 'tickets', false);
+
+            } else {
+                revertInputs(inputs);
+            }
+        })
+        .catch(err => {
+            showCustomAlert(`Cannot save tickets. ${err.message}`, 'Request Failed');
+            revertInputs(inputs);
+        });
+    };
+
+    showCustomConfirm(
+        'Are you sure you want to save the ticket changes?',
+        onConfirm,
+        'Confirm Ticket Updates'
+    );
+}
+
+    function toggleConfigVisibilityTitle() {
+        const section = document.getElementById("config-content");
+        const arrow = document.getElementById("config-title-arrow");
+
+        section.classList.toggle("hidden");
+        arrow.textContent = section.classList.contains("hidden") ? "▲" : "▼";
+    }
+
+function toggleSectionEdit(button, sectionName, forceState) {
+    const section = button.closest(".metrics-section");
+    const isEditing = section.classList.contains("is-editing");
+    const targetState = (forceState === undefined) ? !isEditing : forceState;
+
+    const viewElements = section.querySelectorAll("[data-view-mode]");
+    const editElements = section.querySelectorAll(".inline-editor");
+    const actionBar = section.querySelector(".actions-bar");
+
+    if (targetState) {
+        // close any other editing section
+        const currentlyEditing = document.querySelector(".metrics-section.is-editing");
+        if (currentlyEditing && currentlyEditing !== section) {
+            const otherBtn = currentlyEditing.querySelector(".section-header .btn");
+            const otherName = otherBtn ? otherBtn.getAttribute('data-section-name') : null;
+            if (otherBtn) toggleSectionEdit(otherBtn, otherName || '', false);
+        }
+
+        section.classList.add("is-editing");
+        button.textContent = "Cancel";
+        button.classList.remove("btn-secondary");
+        button.classList.add("btn-danger");
+
+        viewElements.forEach(el => el.style.display = "none");
+        editElements.forEach(el => el.style.display = "block");
+
+        if (actionBar) actionBar.style.display = "none"; // hide per-section action/comment area
+
+        // show global comment box and track current section
+        if (window.__globalCommentUI) window.__globalCommentUI.setActive(sectionName, button);
+
+        // ensure the button has data attribute (helpful when closing)
+        button.setAttribute('data-section-name', sectionName);
+        return;
+    }
+
+    // EXIT edit mode
+    section.classList.remove("is-editing");
+    button.textContent = "Edit";
+    button.classList.add("btn-secondary");
+    button.classList.remove("btn-danger");
+
+    viewElements.forEach(el => el.style.display = "");
+    editElements.forEach(el => el.style.display = "none");
+
+    if (actionBar) {
+        const commentBox = actionBar.querySelector(".edit-comment-container");
+        if (commentBox) {
+            commentBox.style.display = "none";
+            const input = commentBox.querySelector(".edit-comment-input");
+            if (input) input.value = "";
+        }
+        actionBar.style.display = "none";
+    }
+
+    // if no other section is editing, hide the global comment
+    const anyEditing = document.querySelector(".metrics-section.is-editing");
+    if (!anyEditing) {
+        if (window.__globalCommentUI) window.__globalCommentUI.clearActive();
+    } else {
+        // otherwise update active to the other editing section
+        const other = document.querySelector(".metrics-section.is-editing");
+        if (other) {
+            const otherBtn = other.querySelector(".section-header .btn");
+            const otherName = otherBtn ? otherBtn.getAttribute('data-section-name') : null;
+            if (window.__globalCommentUI) window.__globalCommentUI.setActive(otherName, otherBtn);
+        }
+    }
+}
+
+
+
+    function toggleConfigEdit(button) {
+
+    const section = document.getElementById("customer-config-section");
+    const viewElements = section.querySelectorAll("[data-view-mode]");
+    const editElements = section.querySelectorAll(".inline-editor");
+    const saveContainer = document.getElementById("config-save-container");
+    const isEditing = section.classList.contains("is-editing");
+
+    // -------------------- ENTER EDIT MODE --------------------
+    if (!isEditing) {
+        section.classList.add("is-editing");
+
+        // Change Edit → Cancel
+        button.textContent = "Cancel";
+        button.classList.remove("btn-secondary");
+        button.classList.add("btn-danger");
+
+        // Show editors
+        viewElements.forEach(el => el.style.display = "none");
+        editElements.forEach(el => el.style.display = "block");
+
+        // Show Save container
+        saveContainer.style.display = "block";
+
+        const commentInput = document.getElementById("config_edit_comment");
+        const saveBtn = saveContainer.querySelector("button");
+
+        // Reset comment + hide save button
+        commentInput.value = "";
+        saveBtn.style.display = "none";
+
+        // Show Save button only when typing
+        commentInput.addEventListener("input", () => {
+            saveBtn.style.display = commentInput.value.trim().length > 0 ? "inline-block" : "none";
+        });
+        return;
+    }
+
+    // -------------------- EXIT EDIT MODE --------------------
+    section.classList.remove("is-editing");
+
+    // Change Cancel → Edit
+    button.textContent = "Edit";
+    button.classList.add("btn-secondary");
+    button.classList.remove("btn-danger");
+
+    // Restore view mode
+    viewElements.forEach(el => el.style.display = "");
+    editElements.forEach(el => el.style.display = "none");
+
+    // Hide save button
+    saveContainer.style.display = "none";
+    document.getElementById("config_edit_comment").value = "";
+
+}
+
+    function showCustomAlert(message, title = 'Alert') {
+        document.getElementById('customAlertTitle').textContent = title;
+        document.getElementById('customAlertMessage').textContent = message;
+        document.getElementById('customAlertModal').classList.add('visible');
+    }
+
+    function closeCustomAlert() {
+        document.getElementById('customAlertModal').classList.remove('visible');
+    }
+
+    let confirmCallback = null;
+    function showCustomConfirm(message, onConfirm, title = 'Confirmation') {
+        document.getElementById('customConfirmTitle').textContent = title;
+        document.getElementById('customConfirmMessage').textContent = message;
+        confirmCallback = onConfirm;
+        document.getElementById('customConfirmModal').classList.add('visible');
+    }
+
+    function closeCustomConfirm() {
+        document.getElementById('customConfirmModal').classList.remove('visible');
+        confirmCallback = null;
+    }
+
+    document.getElementById('customConfirmButton').addEventListener('click', () => {
+        if (confirmCallback) confirmCallback();
+        closeCustomConfirm();
+    });
+
+    function generatePPT() {
+        const state = ensureCustomerAndMonth();
+        if (!state) return;
+        const { customer, month } = state;
+
+        let monthLabel = '';
+        try {
+            monthLabel = new Date(month).toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+        } catch (error) {
+            monthLabel = month;
+        }
+
+        showCustomConfirm(`Generate PowerPoint for ${customer} - ${monthLabel}?`, () => {
+            const formData = new FormData();
+            formData.append('customer', customer);
+            formData.append('month', month);
+            
+            fetch('/generate_ppt', { method: 'POST', body: formData })
+                .then(async response => {
+                    const contentType = response.headers.get('Content-Type') || '';
+
+                    if (!response.ok || contentType.includes('application/json')) {
+                        let data = {};
+                        try {
+                            data = await response.json();
+                        } catch (error) {
+                            data = {};
+                        }
+                        showCustomAlert(data.message || 'Failed to generate PowerPoint.', 'Generation Failed');
+                        return;
+                    }
+
+                    const blob = await response.blob();
+                    const downloadUrl = window.URL.createObjectURL(blob);
+                    const tempLink = document.createElement('a');
+
+                    const disposition = response.headers.get('Content-Disposition') || '';
+                    const filenameMatch = disposition.match(/filename="?([^"]+)"?/);
+                    const filename = filenameMatch ? filenameMatch[1] : `${customer}_${month.replace(/-/g, '_')}.pptx`;
+
+                    tempLink.href = downloadUrl;
+                    tempLink.download = filename;
+                    document.body.appendChild(tempLink);
+                    tempLink.click();
+                    tempLink.remove();
+                    window.URL.revokeObjectURL(downloadUrl);
+                })
+                .catch(error => {
+                    showCustomAlert(`Error generating PPT: ${error.message}`, 'Request Failed');
+                });
+        }, 'Confirm Generation');
+    }
+
+function sendAuditComment(customer, month, section, comment, operation) {
+    if (!comment || !comment.trim()) return; // nothing to attach
+
+    fetch("/attach_comment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            customer,
+            month,
+            section,
+            comment,
+            operation
+        })
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (!res.success) {
+            console.warn("Audit comment failed:", res.message);
+        }
+    })
+    .catch(err => console.error("Audit comment error:", err));
+}
+
+(function() {
+    const customers = {{ customers | tojson }};
+    const searchInput = document.getElementById('customer-search');
+    const hiddenInput = document.getElementById('customer');
+    const dropdown = document.getElementById('customer-dropdown');
+    const arrow = document.querySelector('.custom-select-arrow');
+    let highlightedIndex = -1;
+    // Populate dropdown (match either name or full)
+function populateDropdown(filter = '') {
+    const filtered = customers.filter(c => {
+        const filterL = filter.toLowerCase();
+        return (c.name && c.name.toLowerCase().includes(filterL))
+            || (c.full && c.full.toLowerCase().includes(filterL));
+    });
+
+    dropdown.innerHTML = '';
+
+    if (filtered.length === 0) {
+        const noResult = document.createElement('div');
+        noResult.className = 'custom-select-option no-results';
+        noResult.textContent = 'No customers found';
+        dropdown.appendChild(noResult);
+    } else {
+        filtered.forEach((customerObj, index) => {
+            const option = document.createElement('div');
+            option.className = 'custom-select-option';
+            // display "name — full" if full exists, otherwise just name
+            option.textContent = `${customerObj.name} ${customerObj.full}`;
+            option.dataset.value = customerObj.name;
+            option.dataset.index = index;
+
+            option.addEventListener('click', () => selectCustomer(customerObj.name));
+            dropdown.appendChild(option);
+        });
+    }
+
+    highlightedIndex = -1;
+}
+
+// Select customer (sets hidden value to the DB key: name)
+function selectCustomer(customerName) {
+    // find display string for this name:
+    const c = customers.find(x => x.name === customerName);
+    searchInput.value = `${c.name} ${c.full}`;
+    hiddenInput.value = customerName;
+    dropdown.classList.remove('show');
+    arrow.textContent = '˅';
+
+    // Trigger month population
+    populateMonths(customerName);
+}
+
+
+    // Show dropdown
+    function showDropdown() {
+        populateDropdown(searchInput.value);
+        dropdown.classList.add('show');
+        arrow.textContent = '˄';
+    }
+    
+    // Hide dropdown
+    function hideDropdown() {
+        dropdown.classList.remove('show');
+        arrow.textContent = '˅';
+    }
+    
+    // Highlight option
+    function highlightOption(index) {
+        const options = dropdown.querySelectorAll('.custom-select-option:not(.no-results)');
+        options.forEach(opt => opt.classList.remove('highlighted'));
+        
+        if (index >= 0 && index < options.length) {
+            options[index].classList.add('highlighted');
+            options[index].scrollIntoView({ block: 'nearest' });
+            highlightedIndex = index;
+        }
+    }
+    
+    // Event: Click input
+    searchInput.addEventListener('click', () => {
+        showDropdown();
+    });
+    
+    // Event: Type in input
+    searchInput.addEventListener('input', (e) => {
+        hiddenInput.value = '';
+        populateDropdown(e.target.value);
+        if (!dropdown.classList.contains('show')) {
+            showDropdown();
+        }
+    });
+    
+    // Event: Keyboard navigation
+    searchInput.addEventListener('keydown', (e) => {
+        const options = dropdown.querySelectorAll('.custom-select-option:not(.no-results)');
+        
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (!dropdown.classList.contains('show')) {
+                showDropdown();
+            } else {
+                highlightOption((highlightedIndex + 1) % options.length);
+            }
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (dropdown.classList.contains('show')) {
+                highlightOption((highlightedIndex - 1 + options.length) % options.length);
+            }
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (highlightedIndex >= 0 && options[highlightedIndex]) {
+                selectCustomer(options[highlightedIndex].dataset.value);
+            }
+        } else if (e.key === 'Escape') {
+            hideDropdown();
+        }
+    });
+    
+    // Event: Click outside
+    document.addEventListener('click', (e) => {
+        if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+            hideDropdown();
+        }
+    });
+    
+    // Initialize with preselected value if exists
+    if (hiddenInput.value) {
+        searchInput.value = hiddenInput.value;
+    }
+})();
+
+let currentEditingSectionName = null;
+let currentEditButton = null;
+
+const globalCommentWrapper = document.getElementById('globalCommentWrapper');
+const globalComment = document.getElementById('globalComment');
+const globalSave = document.getElementById('globalSave');
+const globalCancel = document.getElementById('globalCancel');
+
+// enable Save when there is text
+globalComment.addEventListener('input', () => {
+  globalSave.disabled = globalComment.value.trim().length === 0;
+});
+
+// Global Save calls the appropriate save function
+const SAVE_FN_MAP = {
+  availability: 'saveAvailability',
+  users: 'saveUsers',
+  storage: 'saveStorage',
+  tickets: 'saveTickets',
+  config: 'saveConfiguration'
+};
+
+globalSave.addEventListener('click', () => {
+  if (!currentEditingSectionName) return showCustomAlert('No section selected to save.', 'Error');
+  const fnName = SAVE_FN_MAP[currentEditingSectionName];
+  if (!fnName || typeof window[fnName] !== 'function') return showCustomAlert('Save function not available.', 'Error');
+  window[fnName]();
+});
+
+globalCancel.addEventListener('click', () => {
+  if (!currentEditButton || !currentEditingSectionName) return;
+  toggleSectionEdit(currentEditButton, currentEditingSectionName, false);
+});
+
+</script>
+{% endblock %}

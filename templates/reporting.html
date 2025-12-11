@@ -1,0 +1,2556 @@
+{% extends "base.html" %}
+
+{% block title %}Reporting - OpenText Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ==================== COMMON FORM STYLES ==================== */
+    .btn {
+        font-size: 16px;
+        padding: 10px 25px;
+        border-radius: 6px;
+    }
+
+    .btn-primary {
+        background: linear-gradient(90deg, #004e92, #00B3FF);
+        border: none;
+        color: white;
+    }
+
+    .load-btn { 
+        background: linear-gradient(90deg, #004e92, #00B3FF) !important;
+        border: none !important;
+        color: white !important;
+        font-weight: 600 !important;
+        padding: 10px 25px !important;
+        border-radius: 8px !important;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        font-size: 16px !important;
+    }
+
+    .load-btn:hover {
+        background: linear-gradient(90deg, #003d75, #0097df) !important;
+    }
+
+    .btn-danger {
+        background: #dc3545 !important;
+        border-color: #dc3545 !important;
+        color: white !important;
+    }
+
+    button.btn-danger:hover,
+    .btn.btn-danger:hover {
+        background: #bb2d3b !important;
+        border-color: #b02a37 !important;
+        color: #fff !important;
+    }
+
+    .btn-success {
+        padding: 8px 20px;
+        font-size: 14px;
+    }
+
+    .btn-save {
+        background: #28a745 !important;
+        border-color: #28a745 !important;
+        color: white !important;
+    }
+
+    button.btn-save:hover,
+    .btn.btn-save:hover {
+        background: #218838 !important;
+        border-color: #1e7e34 !important;
+        color: #fff !important;
+    }
+
+    .form-control, 
+    .prev-control,
+    .custom-select-input,
+    .btn {
+        height: 38px;
+        padding: 8px 12px;
+        font: inherit;
+        font-size: 14px;
+        line-height: 1.4;
+        color: #0f172a;
+        background: #fff;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+        box-sizing: border-box;
+    }
+
+    .form-control:focus,
+    .prev-control:focus,
+    .custom-select-input:focus {
+        outline: none;
+        border-color: #003C71;
+        box-shadow: 0 0 0 3px rgba(0, 60, 113, 0.15);
+    }
+
+    .prev-control {
+        width: 100%;
+    }
+
+    /* ==================== CUSTOM SELECT DROPDOWN STYLES ==================== */
+    .custom-select-wrapper {
+        position: relative;
+        width: 100%;
+    }
+
+    .custom-select-input {
+        width: 100%;
+        padding-right: 35px;
+        cursor: pointer;
+    }
+
+    .custom-select-arrow {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translate(60%,-30%);
+        pointer-events: none;
+        color: #000000;
+        font-size: 15px;
+        font-family: consolas, monospace;
+        font-weight: 1000;
+    }
+
+    .custom-select-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        max-height: 250px;
+        overflow-y: auto;
+        background: white;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        margin-top: 4px;
+        z-index: 1000;
+        display: none;
+    }
+
+    .custom-select-dropdown.show {
+        display: block;
+    }
+
+    .custom-select-option {
+        padding: 10px 12px;
+        cursor: pointer;
+        font-size: 13px;
+        color: #333;
+        transition: background-color 0.15s;
+    }
+
+    .custom-select-option:hover,
+    .custom-select-option.highlighted {
+        background-color: #0066cc;
+        color: white;
+    }
+
+    .custom-select-option.no-results {
+        color: #999;
+        cursor: default;
+        text-align: center;
+    }
+
+    .custom-select-option.no-results:hover {
+        background-color: transparent;
+        color: #999;
+    }
+
+    /* ==================== TABLE STYLES ==================== */
+    .table-scroll { 
+        max-height: 520px; 
+        overflow: auto; 
+        border: 1px solid #e5e7eb; 
+        border-radius: 10px; 
+        background: #fff; 
+        padding-top: 0; 
+    }
+
+    .table-scroll table { 
+        min-width: 100%; 
+        border-collapse: separate; 
+        border-spacing: 0; 
+        margin: 0; 
+    }
+
+    .table-scroll th, 
+    .table-scroll td { 
+        padding: 10px 12px; 
+        border-bottom: 1px solid #f1f5f9; 
+        white-space: nowrap; 
+    }
+
+    .table-scroll thead th { 
+        position: sticky; 
+        top: 0; 
+        background: #003C71; 
+        color: #ffffff; 
+        z-index: 2; 
+        text-align: left; 
+    }
+
+    .table-scroll thead tr th:first-child { 
+        border-top-left-radius: 9px; 
+    }
+
+    .table-scroll thead tr th:last-child { 
+        border-top-right-radius: 9px; 
+    }
+
+    .table-scroll thead th { 
+        border-bottom: none; 
+    }
+    
+    .table-scroll th:not(:last-child),
+    .table-scroll td:not(:last-child) {
+        border-right: 1px solid #f1f5f9;
+    }
+
+    .hidden { 
+        display: none !important; 
+    }
+
+    .hide-dev-col {
+        display: none;
+    }
+
+    /* ==================== RECORD MANAGEMENT STYLES ==================== */
+    .record-block {
+        background: #ffffff;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+        border: 1px solid rgba(0, 60, 113, 0.15);
+        box-shadow: 0 10px 25px rgba(0, 60, 113, 0.08);
+    }
+
+    .record-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #003C71;
+    }
+
+    .record-title {
+        margin: 0;
+        color: #003C71;
+        font-size: 18px;
+        font-weight: 600;
+    }
+
+    .remove-record {
+        background: linear-gradient(135deg, #dc3545, #ff6b7a);
+        color: #ffffff;
+        border: none;
+        padding: 8px 18px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.2s ease;
+    }
+
+    .remove-record:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 24px rgba(220, 53, 69, 0.25);
+    }
+
+    .record-fields {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 15px;
+    }
+
+    .record-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        margin-top: 20px;
+    }
+
+    .info-text {
+        font-size: 13px;
+        color: rgba(0, 60, 113, 0.75);
+        margin-top: 8px;
+    }
+
+    /* ==================== INSERT/DELETE PANEL STYLES ==================== */
+    #insertPanel {
+        background: #f8f9fa;
+        padding: 25px;
+        border-radius: 12px;
+        display: none;
+        margin-top: 20px;
+    }
+
+    #deletePanel {
+        background: #fff5f5;
+        padding: 25px;
+        border-radius: 12px;
+        border: 2px solid #ffcccb;
+        display: none;
+        margin-top: 20px;
+    }
+
+    .dev-field {
+        display: none;
+    }
+
+    /* ==================== MONTH PICKER STYLES ==================== */
+    .mp-grid {
+        display: grid;
+        grid-template-columns: repeat(3,1fr);
+        gap: 10px;
+        margin-top: 12px;
+    }
+
+    .mp-tile {
+        padding: 10px;
+        text-align: center;
+        border-radius: 8px;
+        border: 1px solid rgba(0,0,0,0.06);
+        cursor: default;
+        user-select: none;
+        font-weight: 700;
+    }
+
+    .mp-tile.available { 
+        cursor: pointer; 
+        background: #fff; 
+    }
+
+    .mp-tile.available:hover { 
+        background: rgba(0,209,255,0.12); 
+    }
+
+    .mp-tile.selected { 
+        background: linear-gradient(135deg,#00D1FF,#0094D9); 
+        color:#fff; 
+    }
+
+    .mp-tile.dim { 
+        opacity: 0.22; 
+    }
+
+    .mp-year-select {
+        width: 140px;
+        display: inline-block;
+    }
+
+    /* ==================== MODAL STYLES ==================== */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1050;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.2s ease, visibility 0.2s;
+    }
+
+    .modal-overlay.visible {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .modal-content {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        width: 90%;
+        max-width: 450px;
+        transform: translateY(-20px);
+        transition: transform 0.2s ease;
+    }
+
+    .modal-overlay.visible .modal-content {
+        transform: translateY(0);
+    }
+
+    .modal-header { 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+        border-bottom: 1px solid #eee; 
+        padding-bottom: 10px; 
+        margin-bottom: 15px; 
+    }
+
+    .modal-title { 
+        margin: 0; 
+        font-size: 20px; 
+        color: #003C71; 
+    }
+
+    .modal-close { 
+        background: none; 
+        border: none; 
+        font-size: 24px; 
+        cursor: pointer; 
+        color: #888; 
+    }
+
+    .modal-body { 
+        margin-bottom: 20px; 
+        line-height: 1.6; 
+    }
+
+    .modal-footer { 
+        display: flex; 
+        justify-content: flex-end; 
+        gap: 10px; 
+    }
+
+    #customAlertMessage, 
+    #customConfirmMessage { 
+        white-space: pre-wrap; 
+    }
+
+    /* ==================== INLINE EDITABLE FIELD STYLES ==================== */
+    .editable-field {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .editable-field .value {
+        font-weight: 600;
+        color: #0f172a;
+    }
+
+    .editable-field .edit-pencil {
+        cursor: pointer;
+        color: #003C71;
+        font-size: 14px;
+        transition: color 0.2s;
+    }
+
+    .editable-field .edit-pencil:hover {
+        color: #0056a3;
+    }
+
+    .editable-field input,
+    .editable-field select {
+        width: 80px;
+        padding: 4px 8px;
+        font-size: 13px;
+        border: 1px solid #003C71;
+        border-radius: 4px;
+    }
+
+    /* ==================== FORM GROUP STYLES ==================== */
+    .form-group {
+        margin-bottom: 0;
+    }
+
+    .form-group label {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+        margin-bottom: 6px;
+        color: #374151;
+    }
+
+    .form-group input,
+    .form-group select {
+        width: 100%;
+    }
+
+    input[type="month"] {
+        width: 100%;
+        padding: 8px 12px;
+        font-size: 14px;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content-card">
+    <h1>Reporting Dashboard</h1>
+
+    <!-- ====================== UNIFIED REPORTING FORM ====================== -->
+    <div style="margin-bottom:20px;">
+        <label style="margin-right:25px;">
+            <input type="radio" name="basis" value="customer" checked onclick="switchBasis()">&nbsp;Customer&nbsp;  
+            <input type="radio" name="basis" value="csm" onclick="switchBasis()">&nbsp;CSM
+        </label>
+    </div>
+    <!-- ====================== UNIFIED FORM (BOTH CUSTOMER & CSM) ====================== -->
+    <form method="POST" id="unified_reporting_form">
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr 150px; gap:20px; align-items:end;">
+            
+            <!-- CUSTOMER DROPDOWN (visible when basis=customer) -->
+            <div class="form-group" id="customer_field">
+                <label style="color:#004A8F; font-weight:600;">Customer</label>
+                <div class="custom-select-wrapper">
+                    <input type="text" id="customer-search" class="custom-select-input"
+                           placeholder="-- Select Customer --" autocomplete="off">
+                    <span class="custom-select-arrow">˅</span>
+                    <div id="customer-dropdown" class="custom-select-dropdown"></div>
+                    <input type="hidden" name="customer" id="customer">
+                </div>
+            </div>
+
+            <!-- CSM DROPDOWN (hidden by default, visible when basis=csm) -->
+            <div class="form-group" id="csm_field" style="display:none;">
+                <label style="color:#004A8F; font-weight:600;">CSM</label>
+                <div class="custom-select-wrapper">
+                    <input type="text" id="csm-search" class="custom-select-input"
+                           placeholder="-- Select CSM --" autocomplete="off">
+                    <span class="custom-select-arrow">˅</span>
+                    <div id="csm-dropdown" class="custom-select-dropdown"></div>
+                    <input type="hidden" id="csm_name">
+                </div>
+            </div>
+
+            <!-- MONTH DROPDOWN (for customer) / START MONTH (for CSM) -->
+            <div class="form-group">
+            <label id="month_label" style="color:#004A8F; font-weight:600;">Month</label>
+                <select name="month" id="month_select" class="form-control" required>
+                    <option value="">-- Select Month --</option>
+                </select>
+            </div>
+
+            <!-- PREVIOUS MONTHS (for customer and CSM)-->
+            <div class="form-group">
+            <label id="prev_months_label" style="color:#004A8F; font-weight:600;">Previous Months</label>
+                <div id="prev_holder"></div>
+                <input id="num_months" type="number" class="form-control" min="1" value="1" 
+                       style="display:none;">
+            </div>
+
+            <!-- LOAD BUTTON -->
+            <button type="button" id="unified_load_btn" class="btn btn-primary load-btn">Load</button>
+        </div>
+    </form>
+
+    <!-- ====================== CUSTOMER HISTORICAL DATA SECTION ====================== -->
+    {% if data %}
+    <div id="historical_data_section" style="margin-top:30px;">
+        <h3>Historical Data</h3>
+
+        <!-- Controls -->
+        <div style="margin: 8px 0; display: flex; justify-content: flex-end; gap: 10px;">
+            <button id="togglePDetailsBtn" type="button" class="btn btn-primary load-btn" style="display: none;">Show P-details</button>
+            <button id="downloadCsvBtn" type="button" class="btn btn-primary load-btn">Download CSV</button>
+        </div>
+
+        {# Core columns (no dev columns here) #}
+        {% set CORE_MAIN_ORDER = [
+            'customer_name',
+            'month_year',
+            'csm_primary',
+            'csm_secondary',
+            'updated_availability',
+            'updated_target',
+            'updated_prod_limit', 'updated_prod_used',
+            'updated_test_limit', 'updated_test_used',
+            'updated_prod_target_storage_gb', 'updated_prod_storage_gb',
+            'updated_test_target_storage_gb', 'updated_test_storage_gb',
+            'updated_current_opened_tickets',
+            'updated_current_closed_tickets',
+            'updated_current_backlog_tickets',
+            'updated_tickets_backlog'
+        ] %}
+
+        {# Dev columns to insert in two places when no_of_envs == 3 #}
+        {% set DEV_LIMIT_USED = ['updated_dev_limit', 'updated_dev_used'] %}
+        {% set DEV_STORAGE = ['updated_dev_target_storage_gb', 'updated_dev_storage_gb'] %}
+
+        {# Build MAIN_ORDER inserting dev columns in the requested positions when needed #}
+        {% set MAIN_ORDER = CORE_MAIN_ORDER.copy() %}
+        {% if no_of_envs|int == 3 %}
+            {# Insert DEV_LIMIT_USED immediately after 'updated_test_used' #}
+            {% set idx_test_used = MAIN_ORDER.index('updated_test_used') + 1 %}
+            {% set _ = MAIN_ORDER.insert(idx_test_used, DEV_LIMIT_USED[0]) %}
+            {% set _ = MAIN_ORDER.insert(idx_test_used + 1, DEV_LIMIT_USED[1]) %}
+
+            {# Insert DEV_STORAGE immediately after 'updated_test_storage_gb' #}
+            {% set idx_test_storage = MAIN_ORDER.index('updated_test_storage_gb') + 1 %}
+            {% set _ = MAIN_ORDER.insert(idx_test_storage, DEV_STORAGE[0]) %}
+            {% set _ = MAIN_ORDER.insert(idx_test_storage + 1, DEV_STORAGE[1]) %}
+        {% endif %}
+
+        {% set PDETAIL_ORDER = [
+            'p1_opened', 'p1_closed', 'p1_backlog',
+            'p2_opened', 'p2_closed', 'p2_backlog',
+            'p3_opened', 'p3_closed', 'p3_backlog',
+            'p4_opened', 'p4_closed', 'p4_backlog'
+        ] %}
+
+        {% set LABELS = {
+            'customer_name': 'Customer Name',
+            'month_year': 'Month & Year',
+            'csm_primary': 'CSM Primary',
+            'csm_secondary': 'CSM Lead',
+            'updated_availability': 'Availability (%)',
+            'updated_target': 'Target (%)',
+            'updated_prod_limit': 'Prod Limit',
+            'updated_prod_used': 'Prod Used',
+            'updated_test_limit': 'Test Limit',
+            'updated_test_used': 'Test Used',
+            'updated_dev_limit': 'Dev Limit',
+            'updated_dev_used': 'Dev Used',
+            'updated_prod_target_storage_gb': 'Prod Target Storage (GB)',
+            'updated_prod_storage_gb': 'Prod Actual Storage (GB)',
+            'updated_test_target_storage_gb': 'Test Target Storage (GB)',
+            'updated_test_storage_gb': 'Test Actual Storage (GB)',
+            'updated_dev_target_storage_gb': 'Dev Target Storage (GB)',
+            'updated_dev_storage_gb': 'Dev Actual Storage (GB)',
+            'updated_current_opened_tickets': 'Current Opened Tickets',
+            'updated_current_closed_tickets': 'Current Closed Tickets',
+            'updated_current_backlog_tickets': 'Current Backlog Tickets',
+            'updated_tickets_backlog': 'Tickets Backlog',
+            'p1_opened': 'P1 Opened', 'p1_closed': 'P1 Closed', 'p1_backlog': 'P1 Backlog',
+            'p2_opened': 'P2 Opened', 'p2_closed': 'P2 Closed', 'p2_backlog': 'P2 Backlog',
+            'p3_opened': 'P3 Opened', 'p3_closed': 'P3 Closed', 'p3_backlog': 'P3 Backlog',
+            'p4_opened': 'P4 Opened', 'p4_closed': 'P4 Closed', 'p4_backlog': 'P4 Backlog'
+        } %}
+
+        <div class="table-scroll">
+            <table id="historicalTable">
+                <thead>
+                    <tr>
+                        {% for col in MAIN_ORDER %}
+                            <th data-col="{{ col }}">{{ LABELS.get(col, col.replace('_', ' ').title()) }}</th>
+                        {% endfor %}
+                        {% for col in PDETAIL_ORDER %}
+                            <th class="p-details hidden" data-col="{{ col }}">{{ LABELS.get(col, col.replace('_', ' ').title()) }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                {% for row in data %}
+                    <tr>
+                        {% for col in MAIN_ORDER %}
+                            <td data-col="{{ col }}">
+                                {% set val = row.get(col) %}
+                                {% if col == 'month_year' and val %}
+                                    {% if val is string %}
+                                        {{ val|format_month_display }}
+                                    {% else %}
+                                        {{ val.strftime('%B %Y') }}
+                                    {% endif %}
+                                {% elif col in ['updated_availability', 'updated_target'] and val is not none %}
+                                    {{ '%.2f'|format(val * 100) }}
+                                {% else %}
+                                    {{ val if val is not none else '' }}
+                                {% endif %}
+                            </td>
+                        {% endfor %}
+                        {% for col in PDETAIL_ORDER %}
+                            <td class="p-details hidden" data-col="{{ col }}">{{ row.get(col) if row.get(col) is not none else '' }}</td>
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ====================== CSM MULTI-MONTH DATA SECTION ====================== -->
+    <div id="csm_report_container" style="margin-top:25px; display:none;">
+        <h3>CSM Multi-Month Data</h3>
+
+        <div style="margin: 10px 0; display: flex; justify-content: flex-end; gap: 10px;">
+            <button id="toggleCSMPDetailsBtn" type="button" class="btn btn-primary load-btn" style="display:none;">Show P-details</button>
+            <button id="downloadCSMCsvBtn" type="button" class="btn btn-primary load-btn">Download CSV</button>
+        </div>
+
+        <div id="csm_report_table"></div>
+    </div>
+
+    <!-- ====================== MANAGE RECORDS SECTION ====================== -->
+    <div style="margin-top: 50px; padding-top: 30px; border-top: 2px solid #E0E0E0;">
+        <h2>Manage Records</h2>
+
+        <!-- Toggle buttons for config mode (hidden in table mode) -->
+        <div id="insertDeleteButtons" style="display:flex; gap:12px; margin-top:12px;">
+            <button id="showInsertBtn" type="button" class="btn btn-primary load-btn">Add New Customer</button>
+            <button id="showAuditBtn" type="button" class="btn btn-primary load-btn">Audit Records</button>
+            <div style="display:none;">
+                <button id="showDeleteBtn" type="button" class="btn btn-danger">Delete Record</button>
+            </div>
+        </div>
+
+        <!-- INSERT PANEL (hidden until user clicks Insert Record) -->
+        <div id="insertPanel" style="display:none; margin-top:30px;">
+            <h3 style="margin-bottom: 20px; color: #003C71;" id="in_heading">Insert New Record</h3>
+
+            <!-- MODE SELECTOR (only visible after clicking Insert Record) -->
+            <div class="record-block" style="margin-bottom:20px;" id="mode_selector">
+                <label class="metric-label">Select Mode</label>
+                <select id="mode_select" class="form-control" onchange="switchMode()">
+                    <option value="">-- Select Insert Mode --</option>
+                    <option value="config">Configuration Only</option>
+                    <option value="table">Table Data Entry</option>
+                </select>
+            </div>
+
+            <!-- ==================== CONFIGURATION BLOCK ==================== -->
+            <div id="config_block" style="display:none;">
+                <form id="configForm">
+                    <div class="record-block">
+                        <div class="record-header">
+                            <h4 class="record-title">Primary Configuration</h4>
+                        </div>
+
+                        <div class="record-fields">
+                            <div class="form-group">
+                                <label style="color:#004A8F; font-weight:600;">Customer Short Code *</label>
+                                <input type="text" name="customer" id="ins_customer" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label style="color:#004A8F; font-weight:600;">Go Live *</label>
+                                <input type="month" name="month" id="ins_month" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label style="color:#004A8F; font-weight:600;">CSM Primary</label>
+                                <input type="text" name="csm_primary" id="ins_csm_primary">
+                            </div>
+
+                            <div class="form-group">
+                                <label style="color:#004A8F; font-weight:600;">CSM Lead</label>
+                                <input type="text" name="csm_secondary" id="ins_csm_secondary">
+                            </div>
+
+                            <div class="form-group">
+                                <label style="color:#004A8F; font-weight:600;">No of Months</label>
+                                <input type="number" name="no_of_months" id="no_months" value="6" min="1" max="24">
+                            </div>
+
+                            <div class="form-group">
+                                <label style="color:#004A8F; font-weight:600;">No of Environments</label>
+                                <select name="no_of_environments" id="no_envs">
+                                    <option value="2" selected>2</option>
+                                    <option value="3">3</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="record-actions">
+                        <button type="button" class="btn btn-success btn-save" onclick="insertConfigRecord()">Save Configuration</button>
+                    </div>
+                </form>
+            </div>
+            <!-- ==================== TABLE DATA ENTRY BLOCK ==================== -->
+            <div id="table_block" style="display:none; margin-top:25px;">
+                <h3 style="color:#003C71">Enter Table Data</h3>
+
+                <div class="form-group">
+                    <label>Select Customer *</label>
+                    <div class="custom-select-wrapper">
+                        <input type="text" 
+                            id="td-customer-search" 
+                            class="custom-select-input"
+                            placeholder="-- Select Customer --"
+                            autocomplete="off">
+                        <span class="custom-select-arrow" id="td-arrow">˅</span>
+                        <div id="td-customer-dropdown" class="custom-select-dropdown"></div>
+                        
+                        <input type="hidden" 
+                            id="td_customer" 
+                            class="form-control">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Select Month *</label>
+                    <select id="td_month" class="form-control" onchange="showTableDataSection()"></select>
+                </div>
+
+                <form id="tableForm">
+                    <div id="table_data_section" style="display:none; margin-top:20px;">
+
+                        <!-- AVAILABILITY -->
+                        <div class="record-block">
+                            <div class="record-header">
+                                <h4 class="record-title">Availability</h4>
+                            </div>
+                            <div class="record-fields">
+                                <div class="form-group">
+                                    <label>Updated Availability (%)</label>
+                                    <input type="number" step="0.01" min="0" max="100" id="td_updated_availability" name="updated_availability">
+                                </div>
+                                <div class="form-group">
+                                    <label>Updated Target (%)</label>
+                                    <input type="number" step="0.01" min="0" max="100" id="td_updated_target" name="updated_target">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- USERS -->
+                        <div class="record-block">
+                            <div class="record-header">
+                                <h4 class="record-title">Users</h4>
+                            </div>
+
+                            <div class="record-fields">
+                                <div class="form-group">
+                                    <label>Prod Limit</label>
+                                    <input type="number" min="0" name="updated_prod_limit">
+                                </div>
+                                <div class="form-group">
+                                    <label>Prod Used</label>
+                                    <input type="number" min="0" name="updated_prod_used">
+                                </div>
+                                <div class="form-group">
+                                    <label>Test Limit</label>
+                                    <input type="number" min="0" name="updated_test_limit">
+                                </div>
+                                <div class="form-group">
+                                    <label>Test Used</label>
+                                    <input type="number" min="0" name="updated_test_used">
+                                </div>
+                                <div class="form-group dev-field">
+                                    <label>Dev Limit</label>
+                                    <input type="number" min="0" name="updated_dev_limit" value="0">
+                                </div>
+                                <div class="form-group dev-field">
+                                    <label>Dev Used</label>
+                                    <input type="number" min="0" name="updated_dev_used" value="0">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- STORAGE -->
+                        <div class="record-block">
+                            <div class="record-header">
+                                <h4 class="record-title">Storage (GB)</h4>
+                            </div>
+
+                            <div class="record-fields">
+                                <div class="form-group">
+                                    <label>Prod Target</label>
+                                    <input type="number" min="0" name="updated_prod_target_storage_gb">
+                                </div>
+                                <div class="form-group">
+                                    <label>Prod Actual</label>
+                                    <input type="number" min="0" name="updated_prod_storage_gb">
+                                </div>
+                                <div class="form-group">
+                                    <label>Test Target</label>
+                                    <input type="number" min="0" name="updated_test_target_storage_gb">
+                                </div>
+                                <div class="form-group">
+                                    <label>Test Actual</label>
+                                    <input type="number" min="0" name="updated_test_storage_gb">
+                                </div>
+                                <div class="form-group dev-field">
+                                    <label>Dev Target</label>
+                                    <input type="number" min="0" name="updated_dev_target_storage_gb" value="0">
+                                </div>
+                                <div class="form-group dev-field">
+                                    <label>Dev Actual</label>
+                                    <input type="number" min="0" name="updated_dev_storage_gb" value="0">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- TICKETS -->
+                        <div class="record-block">
+                            <div class="record-header">
+                                <h4 class="record-title">Tickets</h4>
+                            </div>
+
+                            <div class="record-fields">
+                                <div class="form-group">
+                                    <label>Opened</label>
+                                    <input type="number" min="0" name="updated_tickets_opened">
+                                </div>
+                                <div class="form-group">
+                                    <label>Closed</label>
+                                    <input type="number" min="0" name="updated_tickets_closed">
+                                </div>
+                                <div class="form-group">
+                                    <label>Backlog</label>
+                                    <input type="number" min="0" name="updated_tickets_backlog">
+                                </div>
+                                <div class="form-group">
+                                    <label>Open at EOM</label>
+                                    <input type="number" min="0" name="updated_current_opened_tickets">
+                                </div>
+                                <div class="form-group">
+                                    <label>Closed at EOM</label>
+                                    <input type="number" min="0" name="updated_current_closed_tickets">
+                                </div>
+                                <div class="form-group">
+                                    <label>Backlog at EOM</label>
+                                    <input type="number" min="0" name="updated_current_backlog_tickets">
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="button" class="btn btn-success load-btn" onclick="insertTableData()">Save Table Data</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- ==================== DELETE RECORD PANEL ==================== -->
+        <div id="deletePanel" style="display:none;">
+            <h3>Delete Record</h3>
+
+            <form id="deleteForm">
+                <!-- CUSTOMER DROPDOWN -->
+                <div class="form-group">
+                    <label>Customer</label>
+                    <div class="custom-select-wrapper">
+                        <input type="text" 
+                            id="delete-customer-search" 
+                            class="custom-select-input"
+                            placeholder="-- Select Customer --"
+                            autocomplete="off">
+                        <span class="custom-select-arrow" id="delete-arrow">˅</span>
+                        <div id="delete-customer-dropdown" class="custom-select-dropdown"></div>
+                        
+                        <input type="hidden" 
+                            name="customer" 
+                            id="delete_customer" 
+                            required>
+                    </div>
+                </div>
+
+                <!-- MONTH DROPDOWN -->
+                <div class="form-group">
+                    <label>Month</label>
+                    <select id="delete_month" name="month" class="form-control" required>
+                        <option value="">-- Select Month --</option>
+                    </select>
+                </div>
+                <button type="button" onclick="deleteRecord()" class="btn btn-danger">Delete Record</button>
+            </form>
+        </div>
+
+        <!-- ==================== AUDIT RECORDS (INLINE SECTION) ==================== -->
+        <!-- ==================== AUDIT RECORDS (INLINE SECTION) ==================== -->
+        <div id="audit_section" style="display:none; margin-top:25px;">
+
+            <!-- Heading alone -->
+            <h3 style="margin:0 0 8px 0;">Audit Records</h3>
+
+            <!-- Text & Download CSV on same line -->
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <span style="font-size:14px; color:#555;">Showing latest 10 records</span>
+
+                <button id="downloadAuditCsvBtn" type="button" class="btn btn-primary load-btn" style="padding:6px 14px;">
+                    Download CSV
+                </button>
+            </div>
+
+            <!-- Table -->
+            <div class="table-scroll">
+                <table id="auditTable">
+                    <thead>
+                        <tr>
+                            <th>Audit ID</th>
+                            <th>Table Name</th>
+                            <th>Operation</th>
+                            <th>Changed At</th>
+                            <th>User</th>
+                            <th>Old Data</th>
+                            <th>New Data</th>
+                            <th>Section</th>
+                            <th>Comment</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+
+
+    </div>
+
+    <!-- ==================== MODAL DEFINITIONS ==================== -->
+    {% block modals %}
+        <!-- Custom Modal for Alerts -->
+        <div id="customAlertModal" class="modal-overlay">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="customAlertTitle">Alert</h5>
+                    <button type="button" class="modal-close" onclick="closeCustomAlert()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p id="customAlertMessage"></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary load-btn" onclick="closeCustomAlert()">OK</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Custom Modal for Confirmations -->
+        <div id="customConfirmModal" class="modal-overlay">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="customConfirmTitle">Confirmation</h5>
+                    <button type="button" class="modal-close" onclick="closeCustomConfirm()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p id="customConfirmMessage"></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary load-btn" id="customConfirmButton">Confirm</button>
+                    <button type="button" class="btn btn-secondary btn-danger" onclick="closeCustomConfirm()">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Shared Month Picker Modal (for Insert & Delete) -->
+        <div id="monthPickerModal" class="modal-overlay" aria-hidden="true">
+            <div class="modal-content" style="max-width: 520px;">
+                <div class="modal-header">
+                    <h5 class="modal-title">Select Month</h5>
+                    <button type="button" class="modal-close" onclick="closeMonthPicker()">&times;</button>
+                </div>
+
+                <div class="modal-body">
+                    <div style="text-align:center; margin-bottom:12px;">
+                        <select id="monthPickerYear" class="form-select mp-year-select"></select>
+                    </div>
+
+                    <div id="monthPickerGrid" class="mp-grid"></div>
+
+                    <div id="monthPickerEmpty"
+                         style="display:none; text-align:center; color:#666; margin-top:10px;">
+                        No months available for this customer.
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-secondary btn-danger" onclick="closeMonthPicker()">Cancel</button>
+                    <button class="btn btn-primary load-btn" id="monthPickerApply">Apply</button>
+                </div>
+            </div>
+        </div>
+                <!-- Audit Records Modal -->
+        <div id="auditModal" class="modal-overlay">
+            <div class="modal-content" style="max-width: 900px;">
+                <div class="modal-header">
+                    <h5 class="modal-title">Audit Records (Latest 10)</h5>
+                    <button type="button" class="modal-close" onclick="closeAuditModal()">&times;</button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="info-text" style="margin-bottom:10px;">
+                        Showing the latest 10 entries from the audit_logs table.
+                    </div>
+                    <div class="table-scroll">
+                        <table id="auditTable">
+                            <thead>
+                                <tr>
+                                    <th>Audit ID</th>
+                                    <th>Table Name</th>
+                                    <th>Operation</th>
+                                    <th>Changed At</th>
+                                    <th>User</th>
+                                    <th>Old Data</th>
+                                    <th>New Data</th>
+                                    <th>Section</th>
+                                    <th>Comment</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Filled dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary load-btn" onclick="downloadAuditCsv()">
+                        Download CSV
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-danger" onclick="closeAuditModal()">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    {% endblock %}
+</div>
+
+<script>
+    // ==================== GLOBAL VARIABLES ====================
+    const noOfEnvs = {{ no_of_envs }};
+    const allCustomers = [
+        {% for cust in customers %}'{{ cust }}'{% if not loop.last %},{% endif %}{% endfor %}
+    ];
+    const allCSMs = [
+        {% for c in csm_list %}'{{ c }}'{% if not loop.last %},{% endif %}{% endfor %}
+    ];
+    const selectedCustomer = JSON.parse(`{{ selected_customer|default('', true)|tojson }}`);
+    const selectedMonth = JSON.parse(`{{ selected_month|default('', true)|tojson }}`);
+    
+    let activePickerTarget = null;
+    let selectedTile = null;
+
+        // ==================== REPORTING PAGE STATE (for Metrics <-> Reporting toggle) ====================
+
+    let isRestoringReportingState = false;
+
+    function saveReportingState() {
+        try {
+            const basis = document.querySelector('input[name="basis"]:checked')?.value || 'customer';
+
+            const state = {
+                basis,
+                // customer basis fields
+                customerValue: document.getElementById('customer').value || '',
+                customerLabel: document.getElementById('customer-search').value || '',
+                month: document.getElementById('month_select').value || '',
+                // prev months (customer only)
+                prevMonths: (function () {
+                    const ctrl = document.getElementById('prev_control');
+                    if (!ctrl) return '';
+                    const v = ctrl.value;
+                    if (v === 'custom') {
+                        // for custom mode use the number input if present
+                        const num = document.querySelector('#prev_holder input[type="number"]');
+                        return num ? (num.value || '') : '';
+                    }
+                    return v || '';
+                })(),
+                // csm basis fields
+                csmValue: document.getElementById('csm_name').value || '',
+                csmLabel: document.getElementById('csm-search').value || '',
+                numMonths: document.getElementById('num_months').value || '',
+                // which section was visible
+                showingCustomerTable: document.getElementById('historical_data_section')?.style.display !== 'none',
+                showingCsmTable: document.getElementById('csm_report_container')?.style.display !== 'none'
+            };
+
+            sessionStorage.setItem('reporting_state', JSON.stringify(state));
+        } catch (e) {
+            console.warn('Could not save reporting state', e);
+        }
+    }
+
+    function restoreReportingState() {
+        let raw;
+        try {
+            raw = sessionStorage.getItem('reporting_state');
+        } catch (e) {
+            console.warn('Could not read reporting state', e);
+            return;
+        }
+        if (!raw) return;
+
+        let state;
+        try {
+            state = JSON.parse(raw);
+        } catch (e) {
+            console.warn('Invalid reporting_state JSON', e);
+            return;
+        }
+
+        // 1) restore basis (customer / csm) without clearing results
+        const targetBasis = state.basis === 'csm' ? 'csm' : 'customer';
+        const basisRadio = document.querySelector(`input[name="basis"][value="${targetBasis}"]`);
+        if (basisRadio) {
+            basisRadio.checked = true;
+        }
+
+        isRestoringReportingState = true;
+        switchBasis();   // re-apply visibility, but we will skip resetting inside
+        isRestoringReportingState = false;
+
+        // 2) restore common controls
+        document.getElementById('month_select').value = state.month || '';
+
+        // 3) restore customer fields
+        document.getElementById('customer').value = state.customerValue || '';
+        document.getElementById('customer-search').value = state.customerLabel || '';
+
+        // prev months widget – we only restore if we are on customer basis
+        if (targetBasis === 'customer' && state.prevMonths) {
+            const holder = document.getElementById('prev_holder');
+            if (holder) {
+                // simple approach: if 1/3/6 use select, else number
+                const n = parseInt(state.prevMonths, 10);
+                if ([1, 3, 6].includes(n)) {
+                    const select = holder.querySelector('select#prev_control');
+                    if (select) {
+                        select.value = String(n);
+                    }
+                } else {
+                    const input = holder.querySelector('input#prev_control');
+                    if (input) input.value = state.prevMonths;
+                }
+            }
+        }
+
+        // 4) restore CSM fields
+        document.getElementById('csm_name').value = state.csmValue || '';
+        document.getElementById('csm-search').value = state.csmLabel || '';
+        document.getElementById('num_months').value = state.numMonths || '';
+
+        // 5) if last view was CSM and we have enough info, auto-reload CSM data
+        if (
+            targetBasis === 'csm' &&
+            state.csmValue &&
+            state.month &&
+            state.numMonths
+        ) {
+            // Same logic as in unified_load_btn CSM branch, but we don't want to
+            // re-save again immediately, so we wrap without calling saveReportingState here.
+            fetch("/load_multi_month_csm_data", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({
+                    csm: state.csmValue,
+                    start_month: state.month,
+                    num_months: parseInt(state.numMonths, 10)
+                })
+            })
+            .then(r => r.json())
+            .then(res => {
+                if (!res.success || !res.data || res.data.length === 0) {
+                    return;
+                }
+                const historicalBlock = document.getElementById("historical_data_section");
+                if (historicalBlock) historicalBlock.style.display = "none";
+                renderCSMTable(res.data);
+                document.getElementById("csm_report_container").style.display = "block";
+            })
+            .catch(e => console.error('Error restoring CSM data', e));
+        }
+        // For customer basis: table rows already came from server using session,
+        // so we just needed to re-set the controls; no extra fetch required.
+    }
+
+
+    // ==================== UTILITY FUNCTIONS ====================
+    
+    function formatMonthLabel(monthString) {
+        try {
+            return new Date(monthString).toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+        } catch (error) {
+            return monthString;
+        }
+    }
+
+    function showCustomAlert(message, title = 'Alert') {
+        document.getElementById('customAlertTitle').textContent = title;
+        document.getElementById('customAlertMessage').textContent = message;
+        document.getElementById('customAlertModal').classList.add('visible');
+    }
+
+    function closeCustomAlert() {
+        document.getElementById('customAlertModal').classList.remove('visible');
+    }
+
+    function showCustomConfirm(message, onConfirm, title = 'Confirmation') {
+        const modal = document.getElementById('customConfirmModal');
+        const titleElem = document.getElementById('customConfirmTitle');
+        const msgElem = document.getElementById('customConfirmMessage');
+        const confirmBtn = document.getElementById('customConfirmButton');
+
+        titleElem.textContent = title;
+        msgElem.textContent = message;
+
+        const newConfirmBtn = confirmBtn.cloneNode(true);
+        confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+
+        newConfirmBtn.addEventListener('click', () => {
+            modal.classList.remove('visible');
+            if (typeof onConfirm === 'function') onConfirm();
+        });
+
+        modal.classList.add('visible');
+    }
+
+    function closeCustomConfirm() {
+        document.getElementById('customConfirmModal').classList.remove('visible');
+    }
+
+    // ==================== BASIS SWITCHING (CUSTOMER vs CSM) ====================
+    
+    function switchBasis() {
+        const basis = document.querySelector('input[name="basis"]:checked').value;
+
+        // Toggle field visibility
+        document.getElementById("customer_field").style.display = basis === "customer" ? "block" : "none";
+        document.getElementById("csm_field").style.display = basis === "csm" ? "block" : "none";
+
+        // Update labels
+        document.getElementById("month_label").textContent = "Month";
+        document.getElementById("prev_months_label").textContent = "Previous Months";
+
+        // Toggle input controls
+        document.getElementById("prev_holder").style.display = basis === "customer" ? "block" : "none";
+        document.getElementById("num_months").style.display = basis === "csm" ? "block" : "none";
+
+        // When *user* switches basis we want a fresh Reporting section.
+        // But when we're restoring from sessionStorage we *do not* want to reset.
+        if (!isRestoringReportingState) {
+            const historicalSection = document.getElementById("historical_data_section");
+            const csmSection = document.getElementById("csm_report_container");
+            if (historicalSection) historicalSection.style.display = "none";
+            if (csmSection) csmSection.style.display = "none";
+
+            document.getElementById("month_select").innerHTML =
+                '<option value="">-- Select Month --</option>';
+
+            // Also clear the saved reporting state when user manually flips basis
+            try {
+                sessionStorage.removeItem('reporting_state');
+            } catch (e) {
+                console.warn('Could not clear reporting_state', e);
+            }
+        }
+    }
+
+    // ==================== MONTH POPULATION FUNCTIONS ====================
+    
+    function populateMonths(customer) {
+        const monthSelect = document.getElementById('month_select');
+        
+        if (!customer) {
+            monthSelect.innerHTML = '<option value="">-- Select Month --</option>';
+            return;
+        }
+
+        fetch(`/get_months/${customer}`)
+            .then(response => response.json())
+            .then(months => {
+                monthSelect.innerHTML = '<option value="">-- Select Month --</option>';
+                months.forEach(month => {
+                    const option = document.createElement('option');
+                    option.value = month;
+                    option.text = formatMonthLabel(month);
+                    if (selectedCustomer === customer && selectedMonth && month === selectedMonth) {
+                        option.selected = true;
+                    }
+                    monthSelect.appendChild(option);
+                });
+            });
+    }
+
+    function populateCSMMonths(csm) {
+        const monthSelect = document.getElementById('month_select');
+        
+        if (!csm) {
+            monthSelect.innerHTML = '<option value="">-- Select Month --</option>';
+            return;
+        }
+
+        fetch("/get_months_for_csm", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ csm })
+        })
+        .then(r => r.json())
+        .then(res => {
+            if (!res.success) return;
+            
+            monthSelect.innerHTML = '<option value="">-- Select Month --</option>';
+            res.months.reverse().forEach(m => {
+                const option = document.createElement('option');
+                option.value = m + "-01";
+                option.text = formatMonthLabel(m + "-01");
+                monthSelect.appendChild(option);
+            });
+        });
+    }
+
+    // ==================== UNIFIED LOAD BUTTON HANDLER ====================
+    
+    document.getElementById("unified_load_btn").addEventListener("click", function() {
+        const basis = document.querySelector('input[name="basis"]:checked').value;
+        
+        if (basis === "customer") {
+            // Customer-based reporting (submit form normally)
+            const customer = document.getElementById("customer").value;
+            const month = document.getElementById("month_select").value;
+            
+            if (!customer || !month) {
+                showCustomAlert("Please select both Customer and Month.");
+                return;
+            }
+
+            // Save state *before* navigating away (sessionStorage survives navigation)
+            saveReportingState();
+            document.getElementById("unified_reporting_form").submit();
+
+        } else {
+            // CSM-based reporting (AJAX call)
+            const csm = document.getElementById("csm_name").value;
+            const start_month = document.getElementById("month_select").value;
+            const num_months = parseInt(document.getElementById("num_months").value);
+            
+            if (!csm || !start_month || !num_months) {
+                showCustomAlert("Please select CSM, Start Month, and Number of Months.");
+                return;
+            }
+
+            fetch("/load_multi_month_csm_data", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ csm, start_month, num_months })
+            })
+            .then(r => r.json())
+            .then(res => {
+                if (!res.success || res.data.length === 0) {
+                    showCustomAlert("No data found for this range.");
+                    return;
+                }
+
+                // Hide customer historical data
+                const historicalBlock = document.getElementById("historical_data_section");
+                if (historicalBlock) historicalBlock.style.display = "none";
+
+                // Show CSM data
+                renderCSMTable(res.data);
+                document.getElementById("csm_report_container").style.display = "block";
+
+                // Save state *after* we’ve successfully loaded the CSM data
+                saveReportingState();
+            })
+            .catch(err => {
+                console.error('Error loading CSM data', err);
+                showCustomAlert("Error loading CSM data.");
+            });
+        }
+    });
+
+
+    // ==================== PREVIOUS MONTHS CONTROL (CUSTOMER ONLY) ====================
+    
+    (function() {
+        const holder = document.getElementById('prev_holder');
+        const initial = Number(`{{ prev_months or 6 }}`);
+        let mode = [1,3,6].includes(initial) ? 'select' : 'number';
+
+        function renderSelect(value) {
+            const select = document.createElement('select');
+            select.name = 'prev_months';
+            select.id = 'prev_control';
+            select.className = 'prev-control';
+            ['1','3','6','custom'].forEach(optVal => {
+                const opt = document.createElement('option');
+                opt.value = optVal;
+                opt.textContent = optVal === 'custom' ? 'Custom' : optVal;
+                if ((optVal !== 'custom' && Number(optVal) === value) || (optVal === 'custom' && ![1,3,6].includes(value))) {
+                    opt.selected = true;
+                }
+                select.appendChild(opt);
+            });
+            select.addEventListener('change', () => {
+                if (select.value === 'custom') {
+                    mode = 'number';
+                    renderNumber('');
+                }
+            });
+            holder.innerHTML = '';
+            holder.appendChild(select);
+        }
+
+        function renderNumber(value) {
+            const input = document.createElement('input');
+            input.type = 'number';
+            input.min = '1';
+            input.max = '24';
+            input.step = '1';
+            input.placeholder = 'Enter months (1-24)';
+            input.name = 'prev_months';
+            input.id = 'prev_control';
+            input.className = 'prev-control';
+            if (value !== '') input.value = value;
+            input.addEventListener('blur', () => {
+                const n = parseInt(input.value || '');
+                if (!Number.isNaN(n) && n >= 1 && n <= 24) return;
+                mode = 'select';
+                renderSelect(6);
+            });
+            holder.innerHTML = '';
+            holder.appendChild(input);
+            input.focus();
+        }
+
+        if (mode === 'select') renderSelect(initial); else renderNumber(initial);
+    })();
+
+    // ==================== HISTORICAL DATA TABLE FUNCTIONS (CUSTOMER) ====================
+    
+    (function() {
+        const toggleBtn = document.getElementById('togglePDetailsBtn');
+        const downloadBtn = document.getElementById('downloadCsvBtn');
+
+        if (!toggleBtn || !downloadBtn) return;
+
+        function setPDetailsVisible(visible) {
+            document.querySelectorAll('#historicalTable .p-details').forEach(el => {
+                if (visible) el.classList.remove('hidden'); else el.classList.add('hidden');
+            });
+            toggleBtn.textContent = visible ? 'Hide P-details' : 'Show P-details';
+        }
+
+        setPDetailsVisible(false);
+
+        toggleBtn.addEventListener('click', () => {
+            const anyHidden = !!document.querySelector('#historicalTable .p-details.hidden');
+            setPDetailsVisible(anyHidden);
+        });
+
+        downloadBtn.addEventListener('click', () => {
+            const table = document.getElementById('historicalTable');
+            const visibleHeaders = Array.from(table.querySelectorAll('thead th'))
+                .filter(th => !th.classList.contains('hidden'));
+            const colKeys = visibleHeaders.map(th => th.getAttribute('data-col'));
+            const headerRow = visibleHeaders.map(th => th.textContent.trim());
+
+            const bodyRows = Array.from(table.querySelectorAll('tbody tr')).map(tr => {
+                return colKeys.map(key => {
+                    const td = tr.querySelector(`td[data-col="${key}"]`);
+                    const text = td ? td.textContent.trim() : '';
+                    if (text.includes('"') || text.includes(',') || text.includes('\n')) {
+                        return `"${text.replace(/"/g, '""')}"`;
+                    }
+                    return text;
+                }).join(',');
+            });
+
+            const csv = [headerRow.join(','), ...bodyRows].join('\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'historical_data.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+    })();
+
+    // ==================== CSM TABLE RENDERING & FUNCTIONS ====================
+    
+    const CSM_MAIN_ORDER = [
+        'customer_name', 'month_year', 'csm_primary', 'csm_secondary',
+        'updated_availability', 'updated_target',
+        'updated_prod_limit', 'updated_prod_used',
+        'updated_test_limit', 'updated_test_used',
+        'updated_prod_target_storage_gb', 'updated_prod_storage_gb',
+        'updated_test_target_storage_gb', 'updated_test_storage_gb',
+        'updated_current_opened_tickets', 'updated_current_closed_tickets',
+        'updated_current_backlog_tickets', 'updated_tickets_backlog'
+    ];
+
+    const CSM_PDETAIL_ORDER = [
+        'p1_opened','p1_closed','p1_backlog',
+        'p2_opened','p2_closed','p2_backlog',
+        'p3_opened','p3_closed','p3_backlog',
+        'p4_opened','p4_closed','p4_backlog'
+    ];
+
+    const CSM_LABELS = {
+        customer_name: 'Customer Name',
+        month_year: 'Month',
+        csm_primary: 'CSM Primary',
+        csm_secondary: 'CSM Lead',
+        updated_availability: 'Availability (%)',
+        updated_target: 'Target (%)',
+        updated_prod_limit: 'Prod Limit',
+        updated_prod_used: 'Prod Used',
+        updated_test_limit: 'Test Limit',
+        updated_test_used: 'Test Used',
+        updated_prod_target_storage_gb: 'Prod Target GB',
+        updated_prod_storage_gb: 'Prod Actual GB',
+        updated_test_target_storage_gb: 'Test Target GB',
+        updated_test_storage_gb: 'Test Actual GB',
+        updated_current_opened_tickets: 'Opened (EOM)',
+        updated_current_closed_tickets: 'Closed (EOM)',
+        updated_current_backlog_tickets: 'Backlog (EOM)',
+        updated_tickets_backlog: 'Tickets Backlog',
+        p1_opened:"P1 Opened", p1_closed:"P1 Closed", p1_backlog:"P1 Backlog",
+        p2_opened:"P2 Opened", p2_closed:"P2 Closed", p2_backlog:"P2 Backlog",
+        p3_opened:"P3 Opened", p3_closed:"P3 Closed", p3_backlog:"P3 Backlog",
+        p4_opened:"P4 Opened", p4_closed:"P4 Closed", p4_backlog:"P4 Backlog"
+    };
+
+    const CSM_HIDDEN_CLASS = "csm-hide";
+
+    (function ensureCSMHideCSS() {
+        if (!document.getElementById("csmHideCSS")) {
+            const s = document.createElement("style");
+            s.id = "csmHideCSS";
+            s.innerHTML = `.${CSM_HIDDEN_CLASS} { display: none !important; }`;
+            document.head.appendChild(s);
+        }
+    })();
+
+    function renderCSMTable(data) {
+        const container = document.getElementById("csm_report_table");
+        container.innerHTML = "";
+        
+        let html = `<div class="table-scroll"><table id="csmMultiTable"><thead><tr>`;
+        
+        CSM_MAIN_ORDER.forEach(col => {
+            html += `<th data-col="${col}">${CSM_LABELS[col] || col}</th>`;
+        });
+
+        CSM_PDETAIL_ORDER.forEach(col => {
+            html += `<th class="csm-pdetails csm-hide" data-col="${col}">${CSM_LABELS[col] || col}</th>`;
+        });
+
+        html += `</tr></thead><tbody>`;
+        
+        data.forEach(row => {
+            html += `<tr>`;
+            
+            CSM_MAIN_ORDER.forEach(col => {
+                let val = row[col];
+                if (col === "month_year" && val) {
+                    val = new Date(val).toLocaleString("en-US", { month: "long", year: "numeric" });
+                }
+                if (["updated_availability", "updated_target"].includes(col) && val != null) {
+                    val = (parseFloat(val) * 100).toFixed(2);
+                }
+                html += `<td data-col="${col}">${val ?? ""}</td>`;
+            });
+
+            CSM_PDETAIL_ORDER.forEach(col => {
+                html += `<td class="csm-pdetails csm-hide" data-col="${col}">${row[col] ?? ""}</td>`;
+            });
+
+            html += `</tr>`;
+        });
+        
+        html += `</tbody></table></div>`;
+        container.innerHTML = html;
+        
+        bindCSMPDetailsToggle();
+        document.getElementById("toggleCSMPDetailsBtn").style.display = "none";
+    }
+
+    function bindCSMPDetailsToggle() {
+        const toggleBtn = document.getElementById("toggleCSMPDetailsBtn");
+
+        toggleBtn.onclick = null;
+
+        toggleBtn.onclick = () => {
+            const firstCell = document.querySelector("#csmMultiTable .csm-pdetails");
+            if (!firstCell) return;
+
+            const isHidden = firstCell.classList.contains(CSM_HIDDEN_CLASS);
+
+            document.querySelectorAll("#csmMultiTable .csm-pdetails")
+                .forEach(td => isHidden ? td.classList.remove(CSM_HIDDEN_CLASS) : td.classList.add(CSM_HIDDEN_CLASS));
+
+            toggleBtn.textContent = isHidden ? "Hide P-details" : "Show P-details";
+        };
+
+        document.querySelectorAll("#csmMultiTable .csm-pdetails")
+            .forEach(td => td.classList.add("csm-hide"));
+
+        toggleBtn.textContent = "Show P-details";
+    }
+
+    document.getElementById("downloadCSMCsvBtn").onclick = function () {
+        const table = document.getElementById("csmMultiTable");
+        if (!table) {
+            showCustomAlert("No CSM data available to download.");
+            return;
+        }
+
+        const visibleHeaders = Array.from(table.querySelectorAll("thead th"))
+            .filter(th => !th.classList.contains(CSM_HIDDEN_CLASS));
+
+        const colKeys = visibleHeaders.map(th => th.dataset.col);
+        const headerRow = visibleHeaders.map(th => th.textContent.trim());
+
+        const rows = Array.from(table.querySelectorAll("tbody tr")).map(tr =>
+            colKeys.map(key => {
+                const cell = tr.querySelector(`td[data-col="${key}"]`);
+                const text = cell ? cell.textContent.trim() : "";
+                return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+            }).join(",")
+        );
+
+        const csv = [headerRow.join(","), ...rows].join("\n");
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "CSM_Multi_Month_Report.csv";
+        a.click();
+    };
+
+    // ==================== SEARCHABLE DROPDOWN UTILITY ====================
+    
+    function createSearchableDropdown(config) {
+        const {
+            searchInputId,
+            hiddenInputId,
+            dropdownId,
+            arrowId,
+            items,
+            allowNew = false,
+            onSelect = null
+        } = config;
+        
+        const searchInput = document.getElementById(searchInputId);
+        const hiddenInput = document.getElementById(hiddenInputId);
+        const dropdown = document.getElementById(dropdownId);
+        const arrow = arrowId ? document.getElementById(arrowId) : null;
+        let highlightedIndex = -1;
+        
+        if (!searchInput || !hiddenInput || !dropdown) {
+            console.warn(`Dropdown elements not found for ${searchInputId}`);
+            return;
+        }
+        
+        function populateDropdown(filter = '') {
+            const filtered = items.filter(item => 
+                item.toLowerCase().includes(filter.toLowerCase())
+            );
+            
+            dropdown.innerHTML = '';
+            
+            if (filtered.length === 0 && !allowNew) {
+                const noResult = document.createElement('div');
+                noResult.className = 'custom-select-option no-results';
+                noResult.textContent = 'No results found';
+                dropdown.appendChild(noResult);
+            } else if (filtered.length === 0 && allowNew) {
+                const newOption = document.createElement('div');
+                newOption.className = 'custom-select-option';
+                newOption.textContent = `Create new: "${filter}"`;
+                newOption.dataset.value = filter;
+                newOption.addEventListener('click', () => selectItem(filter));
+                dropdown.appendChild(newOption);
+            } else {
+                filtered.forEach((item, index) => {
+                    const option = document.createElement('div');
+                    option.className = 'custom-select-option';
+                    option.textContent = item;
+                    option.dataset.value = item;
+                    option.dataset.index = index;
+                    
+                    option.addEventListener('click', () => selectItem(item));
+                    dropdown.appendChild(option);
+                });
+            }
+            
+            highlightedIndex = -1;
+        }
+        
+        function selectItem(item) {
+            searchInput.value = item;
+            hiddenInput.value = item;
+            dropdown.classList.remove('show');
+            if (arrow) arrow.textContent = '˅';
+            
+            if (onSelect) onSelect(item);
+        }
+        
+        function showDropdown() {
+            populateDropdown(searchInput.value);
+            dropdown.classList.add('show');
+            if (arrow) arrow.textContent = '˄';
+        }
+        
+        function hideDropdown() {
+            dropdown.classList.remove('show');
+            if (arrow) arrow.textContent = '˅';
+        }
+        
+        function highlightOption(index) {
+            const options = dropdown.querySelectorAll('.custom-select-option:not(.no-results)');
+            options.forEach(opt => opt.classList.remove('highlighted'));
+            
+            if (index >= 0 && index < options.length) {
+                options[index].classList.add('highlighted');
+                options[index].scrollIntoView({ block: 'nearest' });
+                highlightedIndex = index;
+            }
+        }
+        
+        searchInput.addEventListener('click', () => showDropdown());
+        
+        searchInput.addEventListener('input', (e) => {
+            if (!allowNew) {
+                hiddenInput.value = '';
+            } else {
+                hiddenInput.value = e.target.value;
+            }
+            populateDropdown(e.target.value);
+            if (!dropdown.classList.contains('show')) {
+                showDropdown();
+            }
+        });
+        
+        searchInput.addEventListener('keydown', (e) => {
+            const options = dropdown.querySelectorAll('.custom-select-option:not(.no-results)');
+            
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (!dropdown.classList.contains('show')) {
+                    showDropdown();
+                } else {
+                    highlightOption((highlightedIndex + 1) % options.length);
+                }
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (dropdown.classList.contains('show')) {
+                    highlightOption((highlightedIndex - 1 + options.length) % options.length);
+                }
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                if (highlightedIndex >= 0 && options[highlightedIndex]) {
+                    selectItem(options[highlightedIndex].dataset.value);
+                } else if (allowNew && searchInput.value) {
+                    selectItem(searchInput.value);
+                    hideDropdown();
+                }
+            } else if (e.key === 'Escape') {
+                hideDropdown();
+            }
+        });
+        
+        document.addEventListener('click', (e) => {
+            if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+                hideDropdown();
+            }
+        });
+        
+        if (hiddenInput.value) {
+            searchInput.value = hiddenInput.value;
+        }
+    }
+
+    // ==================== INITIALIZE ALL DROPDOWNS ====================
+    
+    createSearchableDropdown({
+        searchInputId: 'customer-search',
+        hiddenInputId: 'customer',
+        dropdownId: 'customer-dropdown',
+        items: allCustomers,
+        allowNew: false,
+        onSelect: (customer) => {
+            populateMonths(customer);
+            const insCustomer = document.getElementById('ins_customer');
+            if (insCustomer && !insCustomer.value) {
+                insCustomer.value = customer;
+            }
+        }
+    });
+    
+    createSearchableDropdown({
+        searchInputId: 'csm-search',
+        hiddenInputId: 'csm_name',
+        dropdownId: 'csm-dropdown',
+        items: allCSMs,
+        allowNew: false,
+        onSelect: (csm) => populateCSMMonths(csm)
+    });
+    
+    let tdCustomers = [];
+    
+    function initTdCustomerDropdown() {
+        createSearchableDropdown({
+            searchInputId: 'td-customer-search',
+            hiddenInputId: 'td_customer',
+            dropdownId: 'td-customer-dropdown',
+            arrowId: 'td-arrow',
+            items: tdCustomers,
+            allowNew: false,
+            onSelect: () => loadPendingMonths()
+        });
+    }
+    
+    createSearchableDropdown({
+        searchInputId: 'delete-customer-search',
+        hiddenInputId: 'delete_customer',
+        dropdownId: 'delete-customer-dropdown',
+        arrowId: 'delete-arrow',
+        items: allCustomers,
+        allowNew: false,
+        onSelect: (customer) => {
+            const monthSelect = document.getElementById("delete_month");
+            monthSelect.innerHTML = `<option value="">-- Select Month --</option>`;
+
+            fetch(`/get_months/${customer}`)
+                .then(res => res.json())
+                .then(months => {
+                    months.forEach(m => {
+                        const opt = document.createElement("option");
+                        opt.value = m;
+                        opt.textContent = formatMonthLabel(m);
+                        monthSelect.appendChild(opt);
+                    });
+                });
+        }
+    });
+
+    // Initialize customer months if pre-selected
+    if (selectedCustomer) {
+        document.getElementById('customer').value = selectedCustomer;
+        document.getElementById('customer-search').value = selectedCustomer;
+        populateMonths(selectedCustomer);
+    }
+
+    // ==================== RECORD MANAGEMENT FUNCTIONS ====================
+    
+    function openInsertPanel() {
+        const insertPanel = document.getElementById("insertPanel");
+        const deletePanel = document.getElementById("deletePanel");
+        
+        if (insertPanel.style.display === "block") {
+            insertPanel.style.display = "none";
+            return;
+        }
+        
+        insertPanel.style.display = "block";
+        deletePanel.style.display = "none";
+        document.getElementById("mode_selector").style.display = "none";
+        document.getElementById("in_heading").style.display = "block";
+        document.getElementById("config_block").style.display = "block";
+        document.getElementById("table_block").style.display = "none";
+        document.getElementById("table_data_section").style.display = "none";
+    }
+    
+    document.getElementById("showInsertBtn").onclick = openInsertPanel;
+
+    function openDeletePanel() {
+        document.getElementById("deletePanel").style.display = "block";
+        document.getElementById("insertPanel").style.display = "block";
+        document.getElementById("config_block").style.display = "none";
+        document.getElementById("table_block").style.display = "none";
+        document.getElementById("mode_selector").style.display = "none";
+        document.getElementById("in_heading").style.display = "none";
+    }
+    
+    document.getElementById("showDeleteBtn").onclick = openDeletePanel;
+
+    function switchMode() {
+        const mode = document.getElementById("mode_select").value;
+        const configBlock = document.getElementById("config_block");
+        const tableBlock = document.getElementById("table_block");
+
+        if (mode === "config") {
+            configBlock.style.display = "block";
+            tableBlock.style.display = "none";
+        } else if (mode === "table") {
+            configBlock.style.display = "none";
+            tableBlock.style.display = "block";
+            loadCustomersPendingTableData();
+        } else {
+            configBlock.style.display = "none";
+            tableBlock.style.display = "none";
+        }
+    }
+
+    function loadCustomersPendingTableData() {
+        fetch("/get_customers_pending_tables")
+            .then(res => res.json())
+            .then(data => {
+                tdCustomers = data.customers;
+                document.getElementById('td-customer-search').value = '';
+                document.getElementById('td_customer').value = '';
+                document.getElementById("td_month").innerHTML = '<option value="">-- Select Month --</option>';
+                document.getElementById("table_data_section").style.display = "none";
+                initTdCustomerDropdown();
+            });
+    }
+
+    function loadPendingMonths() {
+        const cust = document.getElementById("td_customer").value;
+
+        if (!cust) {
+            document.getElementById("td_month").innerHTML = '<option value="">-- Select Month --</option>';
+            document.getElementById("table_data_section").style.display = "none";
+            return;
+        }
+
+        fetch(`/get_months_pending_tables/${cust}`)
+            .then(res => res.json())
+            .then(data => {
+                const monthSelect = document.getElementById("td_month");
+                monthSelect.innerHTML = '<option value="">-- Select Month --</option>';
+
+                data.months.forEach(m => {
+                    monthSelect.innerHTML += `<option value="${m}">${formatMonthLabel(m + "-01")}</option>`;
+                });
+
+                document.getElementById("table_data_section").style.display = "none";
+            });
+    }
+
+    function showTableDataSection() {
+        const m = document.getElementById("td_month").value;
+        document.getElementById("table_data_section").style.display = m ? "block" : "none";
+    }
+
+    function toggleDevFields() {
+        const showDev = document.getElementById("no_envs").value === "3";
+        document.querySelectorAll(".dev-field").forEach(el => {
+            el.style.display = showDev ? "block" : "none";
+        });
+    }
+
+    async function checkRecordExists(customer, monthYear) {
+        try {
+            const formData = new FormData();
+            formData.append('customer', customer);
+            formData.append('month', monthYear);
+            
+            const response = await fetch('/check_record_exists', { 
+                method: 'POST', 
+                body: formData 
+            });
+            
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            
+            const data = await response.json();
+            return data.exists;
+        } catch (error) {
+            console.error('Error checking record existence:', error);
+            showCustomAlert('Error checking if record exists. Please try again.', 'Error');
+            return false;
+        }
+    }
+
+    async function insertConfigRecord() {
+        const formElem = document.getElementById("configForm");
+        const form = new FormData(formElem);
+        form.append("mode", "config");
+
+        const customer = form.get("customer");
+        let month = form.get("month");
+
+        if (!customer || !month) {
+            showCustomAlert("Customer and Month & Year are required.", "Error");
+            return;
+        }
+
+        if (/^\d{4}-\d{2}$/.test(month)) {
+            month = month + "-01";
+            form.set("month", month);
+        }
+
+        const todayMonth = new Date().toISOString().slice(0,7);
+        if (month.slice(0,7) > todayMonth) {
+            showCustomAlert("Month & Year cannot be in the future.", "Error");
+            return;
+        }
+
+        const exists = await checkRecordExists(customer, month);
+        if (exists) {
+            const displayDate = formatMonthLabel(month);
+            showCustomAlert(
+                `Configuration for ${customer} - ${displayDate} already exists.`,
+                'Record Already Exists'
+            );
+            return;
+        }
+
+        showCustomConfirm(
+            "Save configuration for this customer?",
+            () => {
+                fetch("/insert_record", {
+                    method: "POST",
+                    body: form
+                })
+                .then(r => r.json())
+                .then(res => {
+                    if (res.success) {
+                        showCustomAlert("Configuration Saved!", "Success");
+                        formElem.reset();
+                    } else {
+                        showCustomAlert(res.message, "Error");
+                    }
+                })
+                .catch(() => showCustomAlert("Cannot reach server.", "Error"));
+            },
+            "Confirm Save"
+        );
+    }
+
+    function insertTableData() {
+        const customer = document.getElementById("td_customer").value;
+        const month = document.getElementById("td_month").value;
+
+        if (!customer || !month) {
+            showCustomAlert("Select customer and month first.", "Error");
+            return;
+        }
+
+        const form = new FormData();
+        form.append("mode", "table");
+        form.append("customer", customer);
+        form.append("month", month + "-01");
+
+        document.querySelectorAll("#table_data_section input[name]").forEach(inp => {
+            form.append(inp.name, inp.value || "");
+        });
+
+        showCustomConfirm(
+            "Save table data?",
+            () => {
+                fetch("/insert_record", {
+                    method: "POST",
+                    body: form
+                })
+                .then(r => r.json())
+                .then(res => {
+                    if (res.success) {
+                        showCustomAlert("Table Data Saved!", "Success");
+                        document.getElementById("table_data_section").style.display = "none";
+                        document.getElementById("td_month").value = "";
+                    } else {
+                        showCustomAlert(res.message, "Error");
+                    }
+                })
+                .catch(() => showCustomAlert("Cannot reach server.", "Error"));
+            },
+            "Confirm Save"
+        );
+    }
+
+    function deleteRecord() {
+        const customer = document.getElementById("delete_customer").value;
+        const month = document.getElementById("delete_month").value;
+
+        if (!customer || !month) {
+            showCustomAlert("Please select both customer and month.", "Validation Error");
+            return;
+        }
+
+        const formattedMonth = formatMonthLabel(month);
+
+        function performDelete() {
+            const fd = new FormData();
+            fd.append("customer", customer);
+            fd.append("month", month);
+
+            fetch("/delete_record", {
+                method: "POST",
+                body: fd
+            })
+            .then(r => r.json())
+            .then(data => {
+                showCustomAlert(data.message, data.success ? "Success" : "Error");
+                if (data.success) location.reload();
+            })
+            .catch(err => {
+                showCustomAlert("Server error while deleting record.", "Error");
+            });
+            
+        }
+        showCustomConfirm(
+            `Are you sure you want to delete the record for ${customer} - ${formattedMonth}? This action cannot be undone.`,
+            performDelete,
+            "Confirm Deletion"
+        );
+        }
+
+    // ==================== MONTH PICKER MODAL FUNCTIONS ====================
+
+    function openMonthPicker(target) {
+        activePickerTarget = target;
+        document.getElementById("monthPickerModal").classList.add("visible");
+        loadMonthPickerData();
+    }
+
+    function closeMonthPicker() {
+        document.getElementById("monthPickerModal").classList.remove("visible");
+    }
+
+    function loadMonthPickerData() {
+        const customer = activePickerTarget === "delete" 
+            ? document.getElementById("delete_customer").value 
+            : document.getElementById("ins_customer").value;
+
+        if (!customer) {
+            document.getElementById("monthPickerEmpty").style.display = "block";
+            document.getElementById("monthPickerGrid").innerHTML = "";
+            return;
+        }
+
+        fetch(`/get_months/${customer}`)
+            .then(res => res.json())
+            .then(months => {
+                if (months.length === 0) {
+                    document.getElementById("monthPickerEmpty").style.display = "block";
+                    document.getElementById("monthPickerGrid").innerHTML = "";
+                    return;
+                }
+
+                document.getElementById("monthPickerEmpty").style.display = "none";
+
+                const years = [...new Set(months.map(m => m.slice(0, 4)))].sort();
+                const yearSelect = document.getElementById("monthPickerYear");
+                
+                yearSelect.innerHTML = "";
+                years.forEach(y => {
+                    const opt = document.createElement("option");
+                    opt.value = y;
+                    opt.textContent = y;
+                    yearSelect.appendChild(opt);
+                });
+
+                if (years.length > 0) {
+                    yearSelect.value = years[0];
+                    renderMonthGrid(months, years[0]);
+                }
+
+                yearSelect.onchange = () => renderMonthGrid(months, yearSelect.value);
+            });
+    }
+
+    function renderMonthGrid(availableMonths, selectedYear) {
+        const grid = document.getElementById("monthPickerGrid");
+        grid.innerHTML = "";
+
+        const monthNames = [
+            "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+            "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+        ];
+
+        const availableSet = new Set(availableMonths.map(m => m.slice(0, 7)));
+
+        for (let i = 0; i < 12; i++) {
+            const monthNum = String(i + 1).padStart(2, '0');
+            const monthKey = `${selectedYear}-${monthNum}`;
+            
+            const tile = document.createElement("div");
+            tile.className = "mp-tile";
+            tile.textContent = monthNames[i];
+            tile.dataset.value = monthKey;
+
+            if (availableSet.has(monthKey)) {
+                tile.classList.add("available");
+                tile.addEventListener("click", () => selectMonthTile(tile));
+            } else {
+                tile.classList.add("dim");
+            }
+
+            grid.appendChild(tile);
+        }
+
+        selectedTile = null;
+    }
+
+    function selectMonthTile(tile) {
+        if (selectedTile) {
+            selectedTile.classList.remove("selected");
+        }
+        
+        tile.classList.add("selected");
+        selectedTile = tile;
+    }
+
+    document.getElementById("monthPickerApply").onclick = function () {
+        if (!selectedTile) return;
+
+        const selected = selectedTile.dataset.value;
+
+        if (activePickerTarget === "delete") {
+            document.getElementById("delete_month").value = selected + "-01";
+        }
+
+        closeMonthPicker();
+    };
+
+    // ==================== DOWNLOAD CSV FUNCTION ====================
+
+    function downloadCsv() {
+        const data = JSON.parse(`{{ data|tojson|safe }}`);
+        if (!data || data.length === 0) {
+            showCustomAlert("No data available to download.", 'No Data');
+            return;
+        }
+
+        const originalHeaders = Object.keys(data[0]);
+        originalHeaders.shift();
+
+        const filteredHeaders = originalHeaders.filter(h => {
+            if (noOfEnvs === 2) {
+                const lowerKey = h.toLowerCase();
+                return !(lowerKey.includes('dev_limit') || lowerKey.includes('dev_used') || 
+                         lowerKey.includes('dev_target_storage') || lowerKey.includes('dev_storage'));
+            }
+            return true;
+        });
+
+        const transformedHeaders = filteredHeaders.map(h => {
+            let header = h.replace(/_/g, ' ');
+            header = header.toLowerCase().replace(/\b[a-z]/g, char => char.toUpperCase());
+            header = header.replace('Updated ', '').replace('Gb', 'GB');
+            return header;
+        });
+
+        const escapeCsvCell = (cell) => {
+            if (cell === null || cell === undefined) return '';
+            const str = String(cell);
+            if (/[",\r\n]/.test(str)) {
+                return `"${str.replace(/"/g, '""')}"`;
+            }
+            return str;
+        };
+
+        let csvContent = transformedHeaders.map(escapeCsvCell).join(',') + '\r\n';
+
+        data.forEach(row => {
+            const rowValues = filteredHeaders.map(headerKey => {
+                let val = row[headerKey];
+                if (headerKey === 'month_year' && val) {
+                    try {
+                        return new Date(val).toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+                    } catch (e) { return val; }
+                } else if (['updated_availability', 'availability', 'updated_target', 'target'].includes(headerKey) && val !== null) {
+                    return (parseFloat(val) * 100).toFixed(2);
+                }
+                return val;
+            });
+            csvContent += rowValues.map(escapeCsvCell).join(',') + '\r\n';
+        });
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        const customerName = `{{ selected_customer|default('Export', true) }}`.replace(/ /g, '_');
+        link.setAttribute("download", `${customerName}_Historical_Data.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    }
+
+    // ==================== VALIDATION FUNCTION ====================
+
+    function validateInsertForm(formData, monthInput) {
+        const customer = formData.get('customer');
+        const avail = formData.get('updated_availability');
+        const target = formData.get('updated_target');
+
+        if (avail && avail !== '') {
+            const availNum = parseFloat(avail);
+            if (isNaN(availNum) || availNum < 0 || availNum > 100) {
+                showCustomAlert('Updated Availability must be between 0 and 100.', 'Validation Error');
+                return false;
+            }
+        }
+
+        if (target && target !== '') {
+            const targetNum = parseFloat(target);
+            if (isNaN(targetNum) || targetNum < 0 || targetNum > 100) {
+                showCustomAlert('Updated Target must be between 0 and 100.', 'Validation Error');
+                return false;
+            }
+        }
+
+        const numericFields = [
+            'updated_prod_limit', 'updated_prod_used',
+            'updated_test_limit', 'updated_test_used',
+            'updated_dev_limit', 'updated_dev_used'
+        ];
+
+        for (const field of numericFields) {
+            const value = formData.get(field);
+            if (value && value !== '') {
+                const num = parseInt(value);
+                if (isNaN(num) || num < 0) {
+                    const fieldName = field.replace('updated_', '').replace(/_/g, ' ');
+                    showCustomAlert(`${fieldName} must be a positive number.`, 'Validation Error');
+                    return false;
+                }
+            }
+        }
+
+        const storageFields = [
+            'updated_prod_target_storage_gb', 'updated_prod_storage_gb',
+            'updated_test_target_storage_gb', 'updated_test_storage_gb',
+            'updated_dev_target_storage_gb', 'updated_dev_storage_gb'
+        ];
+
+        for (const field of storageFields) {
+            const value = formData.get(field);
+            if (value && value !== '') {
+                const num = parseFloat(value);
+                if (isNaN(num) || num < 0) {
+                    const fieldName = field.replace('updated_', '').replace(/_/g, ' ');
+                    showCustomAlert(`${fieldName} must be a positive number.`, 'Validation Error');
+                    return false;
+                }
+            }
+        }
+
+        const ticketFields = [
+            'updated_tickets_opened', 'updated_tickets_closed', 'updated_tickets_backlog',
+            'updated_current_opened_tickets', 'updated_current_closed_tickets', 'updated_current_backlog_tickets'
+        ];
+
+        for (const field of ticketFields) {
+            const value = formData.get(field);
+            if (value && value !== '') {
+                const num = parseInt(value);
+                if (isNaN(num) || num < 0) {
+                    const fieldName = field.replace('updated_', '').replace(/_/g, ' ');
+                    showCustomAlert(`${fieldName} must be a positive number.`, 'Validation Error');
+                    return false;
+                }
+            }
+        }
+
+        const noOfMonths = formData.get('no_of_months');
+        if (noOfMonths) {
+            const num = parseInt(noOfMonths);
+            if (isNaN(num) || num < 1 || num > 24) {
+                showCustomAlert('No of Months must be between 1 and 24.', 'Validation Error');
+                return false;
+            }
+        }
+
+        const noOfEnvs = formData.get('no_of_environments');
+        if (noOfEnvs) {
+            const num = parseInt(noOfEnvs);
+            if (![2, 3].includes(num)) {
+                showCustomAlert('No of Environments must be 2 or 3.', 'Validation Error');
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    // ==================== LOAD DELETE MONTHS FUNCTION ====================
+
+    function loadDeleteMonths() {
+        const customer = document.getElementById("delete_customer").value;
+        const monthSelect = document.getElementById("delete_month");
+
+        monthSelect.innerHTML = '<option value="">-- Select Month --</option>';
+
+        if (!customer) return;
+
+        fetch(`/get_months/${customer}`)
+            .then(res => res.json())
+            .then(months => {
+                months.forEach(m => {
+                    const d = new Date(m);
+                    const formatted = d.toLocaleString('en-us', { month: 'long', year: 'numeric' });
+                    const opt = document.createElement("option");
+                    opt.value = m;
+                    opt.textContent = formatted;
+                    monthSelect.appendChild(opt);
+                });
+            });
+    }
+
+    // ==================== AUDIT LOGS (INLINE SECTION) ====================
+
+    function populateAuditTable(rows) {
+        const tbody = document.querySelector("#auditTable tbody");
+        tbody.innerHTML = "";
+
+        if (!rows || rows.length === 0) {
+            const tr = document.createElement("tr");
+            const td = document.createElement("td");
+            // 9 columns: Audit ID, Table, Operation, Changed At, User, Section,
+            // Comment, Old Data, New Data
+            td.colSpan = 9;
+            td.textContent = "No audit records found.";
+            tr.appendChild(td);
+            tbody.appendChild(tr);
+            return;
+        }
+
+        rows.forEach(row => {
+            const tr = document.createElement("tr");
+
+            const changedAt = row.changed_at
+                ? new Date(row.changed_at).toUTCString()
+                : "";
+
+            const oldData = row.old_data ? JSON.stringify(row.old_data) : "";
+            const newData = row.new_data ? JSON.stringify(row.new_data) : "";
+
+            tr.innerHTML = `
+                <td>${row.audit_id ?? ""}</td>
+                <td>${row.table_name ?? ""}</td>
+                <td>${row.operation_type ?? ""}</td>
+                <td>${changedAt}</td>
+                <td>${row.username ?? ""}</td>
+                <td>${oldData}</td>
+                <td>${newData}</td>
+                <td>${row.section_name ?? ""}</td>
+                <td>${row.comment ?? ""}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    // Show/hide inline Audit Records section + load latest 10
+    const auditSection = document.getElementById("audit_section");
+    document.getElementById("showAuditBtn").addEventListener("click", function () {
+        // If already visible, hide on second click (optional toggle)
+        if (auditSection.style.display === "block") {
+            auditSection.style.display = "none";
+            return;
+        }
+
+        fetch("/audit_logs/latest")
+            .then(resp => resp.json())
+            .then(data => {
+                if (!data.success) {
+                    showCustomAlert(data.message || "Failed to load audit records.");
+                    return;
+                }
+                populateAuditTable(data.rows);
+                auditSection.style.display = "block";
+            })
+            .catch(err => {
+                console.error(err);
+                showCustomAlert("Failed to load audit records.");
+            });
+    });
+
+    // Download full audit_logs as CSV
+    function downloadAuditCsv() {
+        window.location.href = "/audit_logs/download";
+    }
+
+    // Attach handler to the inline Download CSV button
+    const downloadAuditCsvBtn = document.getElementById("downloadAuditCsvBtn");
+    if (downloadAuditCsvBtn) {
+        downloadAuditCsvBtn.addEventListener("click", downloadAuditCsv);
+    }
+
+    // ==================== RESTORE STATE ON PAGE LOAD ====================
+
+    document.addEventListener('DOMContentLoaded', function () {
+        restoreReportingState();
+    });
+
+
+</script>
+{% endblock %}
